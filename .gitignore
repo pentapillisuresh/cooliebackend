@@ -1,0 +1,5 @@
+src/config/coolie-firebase-service-account.json
+*.env
+.DS_Store
+__MACOSX/
+node_modules/

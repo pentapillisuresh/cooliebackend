@@ -5,8 +5,8 @@ const { auth, isAdmin } = require('../middleware/auth');
 const { registerValidator, loginValidator, validate } = require('../utils/validators');
 
 // ─── Public routes ──────────────────────────────────────────────────
-router.post('/register', registerValidator, validate, authController.register);
-router.post('/login', loginValidator, validate, authController.login);
+router.post('/register', registerValidator,  authController.register);
+router.post('/login', loginValidator,  authController.login);
 router.post('/send-otp', authController.sendOTP);
 router.post('/verify-otp', authController.verifyOTP);
 router.post('/resend-otp', authController.resendOTP);

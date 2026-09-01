@@ -3,3 +3,4 @@ src/config/coolie-firebase-service-account.json
 .DS_Store
 __MACOSX/
 node_modules/
+*coolie-firebase-service-account.json

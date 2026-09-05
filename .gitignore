@@ -4,3 +4,4 @@ src/config/coolie-firebase-service-account.json
 __MACOSX/
 node_modules/
 *coolie-firebase-service-account.json
+*service-account.json

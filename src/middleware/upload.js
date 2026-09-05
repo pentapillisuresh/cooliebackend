@@ -1,126 +1,154 @@
 const multer = require('multer');
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+const { fileTypeFromBuffer } = require('file-type');
 
-const { processImage } = require('../config/sharp');
+const {
+  processSingleFile,
+  processMultipleFiles,
+} = require('../services/processUpload');
 
-// ─── Ensure upload directories exist ────────────────────────────────
-const createUploadDirs = () => {
-  const dirs = [
-    path.join(__dirname, '../uploads/images'),
-    path.join(__dirname, '../uploads/documents'),
-  ];
-  dirs.forEach((dir) => {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  });
+// ─────────────────────────────────────────────
+// Allowed actual file types
+// ─────────────────────────────────────────────
+
+const ALLOWED_FILE_TYPES = {
+  'image/jpeg': ['jpg', 'jpeg'],
+  'image/png': ['png'],
+  'image/webp': ['webp'],
+  'application/pdf': ['pdf'],
 };
-createUploadDirs();
 
-// ─── Multer configuration ─────────────────────────────────────────────
-const fileFilter = (req, file, cb) => {
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, WEBP and PDF are allowed.'), false);
-  }
-};
+// ─────────────────────────────────────────────
+// Multer configuration
+// ─────────────────────────────────────────────
 
 const storage = multer.memoryStorage();
+
 const upload = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+
+  // Don't reject based on client MIME type.
+  // We validate the actual file content after Multer
+  // has loaded it into memory.
+  fileFilter: (req, file, cb) => {
+    cb(null, true);
+  },
+
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10 MB
+  },
 });
 
-// ─── Process a single image (with Sharp) ────────────────────────────
-const processSingleImage = async (file, subFolder = 'images') => {
-  // Generate unique filename
-  const ext = path.extname(file.originalname) || '.jpg';
-  const filename = `${uuidv4()}-${Date.now()}${ext}`;
-  const savePath = path.join(__dirname, `../uploads/${subFolder}`, filename);
+// ─────────────────────────────────────────────
+// Validate actual file content
+// ─────────────────────────────────────────────
 
-  // Process image using centralised Sharp configuration
-  const processedBuffer = await processImage(file.buffer, {
-    width: 1200,          // Max width
-    height: 1200,         // Max height
-    jpegQuality: 80,      // JPEG compression (0-100)
-    fit: 'inside',        // Preserve aspect ratio
-    withoutEnlargement: true,
+const validateFile = async (file) => {
+  if (!file || !file.buffer) {
+    throw new Error('Invalid file');
+  }
+
+  const detectedType = await fileTypeFromBuffer(file.buffer);
+
+  if (!detectedType) {
+    throw new Error('Unable to determine file type');
+  }
+
+  console.log('File type detection:', {
+    originalName: file.originalname,
+    clientMimeType: file.mimetype,
+    detectedMimeType: detectedType.mime,
+    detectedExtension: detectedType.ext,
   });
 
-  // Write the processed buffer to disk
-  await sharp(processedBuffer).toFile(savePath);
-
-  return {
-    filename,
-    path: `/uploads/${subFolder}/${filename}`,
-    fullUrl: `${process.env.BASE_URL}/uploads/${subFolder}/${filename}`,
-  };
-};
-
-// ─── Process a single file (image or PDF) ───────────────────────────
-const processSingleFile = async (file) => {
-  if (file.mimetype.startsWith('image/')) {
-    return await processSingleImage(file, 'images');
-  } else {
-    // PDF – save as is (no compression)
-    const ext = path.extname(file.originalname);
-    const filename = `${uuidv4()}-${Date.now()}${ext}`;
-    const savePath = path.join(__dirname, '../uploads/documents', filename);
-    await fs.promises.writeFile(savePath, file.buffer);
-    return {
-      filename,
-      path: `/uploads/documents/${filename}`,
-      fullUrl: `${process.env.BASE_URL}/uploads/documents/${filename}`,
-    };
+  if (!ALLOWED_FILE_TYPES[detectedType.mime]) {
+    throw new Error(
+      `Invalid file type: ${detectedType.mime}. ` +
+      'Only JPEG, PNG, WEBP and PDF are allowed.'
+    );
   }
+
+  // Replace the unreliable client MIME type
+  // with the detected MIME type.
+  file.mimetype = detectedType.mime;
+
+  return file;
 };
 
-// ─── Middleware: single file upload ──────────────────────────────────
-const uploadSingle = (fieldName) => {
-  return async (req, res, next) => {
-    try {
-      const uploadMiddleware = upload.single(fieldName);
+// ─────────────────────────────────────────────
+// Single file upload
+// ─────────────────────────────────────────────
 
-      uploadMiddleware(req, res, async (err) => {
-        if (err) return next(err);
-        if (!req.file) {
-          return res.status(400).json({ error: 'No file uploaded' });
+const uploadSingle = (fieldName) => {
+  return (req, res, next) => {
+    upload.single(fieldName)(req, res, async (err) => {
+      try {
+        if (err) {
+          return next(err);
         }
+
+        if (!req.file) {
+          return res.status(400).json({
+            success: false,
+            error: 'No file uploaded',
+          });
+        }
+
+        // Validate actual file contents
+        await validateFile(req.file);
+
+        console.log('File accepted:', {
+          name: req.file.originalname,
+          mimeType: req.file.mimetype,
+          size: req.file.size,
+        });
+
+        // Process + upload to Google Cloud Storage
         const fileData = await processSingleFile(req.file);
+
         req.uploadedFile = fileData;
+
         next();
-      });
-    } catch (error) {
-      next(error);
-    }
+      } catch (error) {
+        next(error);
+      }
+    });
   };
 };
 
-// ─── Middleware: multiple files upload ───────────────────────────────
+// ─────────────────────────────────────────────
+// Multiple file upload
+// ─────────────────────────────────────────────
+
 const uploadMultiple = (fieldName, maxCount = 5) => {
-  return async (req, res, next) => {
-    try {
-      const uploadMiddleware = upload.array(fieldName, maxCount);
-      uploadMiddleware(req, res, async (err) => {
-        if (err) return next(err);
-        if (!req.files || req.files.length === 0) {
-          return res.status(400).json({ error: 'No files uploaded' });
+  return (req, res, next) => {
+    upload.array(fieldName, maxCount)(req, res, async (err) => {
+      try {
+        if (err) {
+          return next(err);
         }
-        const uploadedFiles = await Promise.all(
-          req.files.map((file) => processSingleFile(file))
-        );
+
+        if (!req.files || req.files.length === 0) {
+          return res.status(400).json({
+            success: false,
+            error: 'No files uploaded',
+          });
+        }
+
+        // Validate every file
+        for (const file of req.files) {
+          await validateFile(file);
+        }
+
+        // Process + upload all files
+        const uploadedFiles = await processMultipleFiles(req.files);
+
         req.uploadedFiles = uploadedFiles;
+
         next();
-      });
-    } catch (error) {
-      next(error);
-    }
+      } catch (error) {
+        next(error);
+      }
+    });
   };
 };
 

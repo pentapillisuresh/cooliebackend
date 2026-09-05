@@ -4,7 +4,7 @@ const uploadController = require('../controllers/uploadController');
 const { auth, isAdmin } = require('../middleware/auth');;
 const { uploadSingle, uploadMultiple } = require('../middleware/upload');
 
-router.use(auth);
+// router.use(auth);
 
 // ─── File uploads ────────────────────────────────────────────────────
 router.post('/single', uploadSingle('file'), uploadController.uploadSingleFile);

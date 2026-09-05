@@ -11,6 +11,7 @@ const Payment = require('./Payment');
 const Review = require('./Review');
 const Notification = require('./Notification');
 const Promotion = require('./Promotion');
+const Coupon = require('./Coupon');
 
 // User ↔ Worker (one-to-one)
 User.hasOne(Worker, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -67,5 +68,6 @@ module.exports = {
   Document,
   Payment,
   Review,
+  Coupon,
   Promotion,
 };

@@ -25,6 +25,7 @@ const earningsRoutes = require('./routes/earningsRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const promotionRoutes = require('./routes/promotionRoutes');
+const couponRoutes = require('./routes/couponRoutes');
 
 const app = express();
 // ... error handler// Middleware
@@ -55,6 +56,7 @@ app.use('/api/earnings', earningsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/promotions', promotionRoutes);
+app.use('/api/coupon', couponRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

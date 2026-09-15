@@ -1,8 +1,9 @@
-const { Booking, Service, User, Worker, Job, Payment, Category } = require('../models');
+const { Booking, Service, User, Worker, Job, Payment, Category, Address } = require('../models');
 const { BOOKING_STATUS, PAYMENT_STATUS, JOB_STATUS } = require('../utils/constants');
 const { generateRandomString, formatResponse, getPagination, getPagingData } = require('../utils/helpers');
 const { Op } = require('sequelize');
 const { createNotification } = require('./notificationController');
+const { assignWorkerToBooking } = require('../utils/workerAssignment');
 
 /**
  * Create a new booking
@@ -13,15 +14,24 @@ exports.createBooking = async (req, res, next) => {
       serviceId,
       details,
       address,
+      addressId,
       latitude,
       longitude,
       scheduledDate,
       scheduledTime,
       estimatedArrival,
       specialInstructions,
+      servicePrice,
+      GST,
+      convenianceCharges,
+      discountAmount,
       totalAmount,
       groupId, // optional: for group bookings
     } = req.body;
+
+    let finalAddress = address;
+    let finalLat = latitude;
+    let finalLng = longitude;
 
     // Validate service exists
     const service = await Service.findByPk(serviceId);
@@ -29,6 +39,17 @@ exports.createBooking = async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid service' });
     }
 
+
+    if (addressId && (!address || !latitude || !longitude)) {
+      const saved = await Address.findOne({
+        where: { id: addressId, userId: req.user.id },
+      });
+      if (saved) {
+        finalAddress = saved.addressLine;
+        finalLat = saved.latitude;
+        finalLng = saved.longitude;
+      }
+    }
     // Calculate total amount if not provided
     let finalAmount = totalAmount || service.basePrice || 0;
 
@@ -37,20 +58,37 @@ exports.createBooking = async (req, res, next) => {
       userId: req.user.id,
       serviceId,
       details: details || {},
-      address,
-      latitude,
-      longitude,
+      addressId: addressId || null,
+      address: finalAddress,
+      latitude: finalLat,
+      longitude: finalLng,
       scheduledDate,
       scheduledTime,
       estimatedArrival,
       specialInstructions,
+      servicePrice,
+      GST,
+      convenianceCharges,
+      discountAmount,
       totalAmount: finalAmount,
       groupId: groupId || null,
       status: BOOKING_STATUS.PENDING,
       paymentStatus: PAYMENT_STATUS.PENDING,
     });
+    const location = { latitude, longitude }
+    try {
+      const service = await Service.findByPk(serviceId, { include: [{ model: Category }] });
+      console.log("serviceId::", serviceId)
+      const job = await assignWorkerToBooking(booking, service, location);
+      if (job) {
+        console.log(`✅ Worker ${job.workerId} auto-assigned to booking ${booking.id}`);
+      } else {
+        console.log(`⚠️ No available worker for booking ${booking.id}`);
+      }
+    } catch (error) {
+      console.error('Auto-assignment error:', error);
+    }
 
-    // Auto-assign worker if the service has a default worker assignment logic
     // (could be added here)
 
     res.status(201).json({
@@ -58,6 +96,14 @@ exports.createBooking = async (req, res, next) => {
       data: booking,
     });
   } catch (error) {
+    console.error('❌ Booking creation error:');
+    console.error('Message:', error.message);
+    console.error('Name:', error.name);
+    console.error('SQL:', error.sql);
+    console.error('Original error:', error.original);
+    console.error('Parent error:', error.parent);
+    console.error('Stack:', error.stack);
+
     next(error);
   }
 };
@@ -394,7 +440,6 @@ exports.cancelBookingWithReason = async (req, res, next) => {
     await booking.update({
       status: BOOKING_STATUS.CANCELLED,
       cancellationReason: reason,
-      cancellationDetails: reasonDetails,
       cancelledAt: new Date(),
     });
 
@@ -520,7 +565,7 @@ exports.reassignWorker = async (req, res, next) => {
         },
         'job'
       );
-  
+
     }
 
     await booking.update({ status: BOOKING_STATUS.ACCEPTED });

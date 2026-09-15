@@ -11,6 +11,11 @@ const Promotion = sequelize.define('Promotion', {
     type: DataTypes.STRING(200),
     allowNull: false,
   },
+  code: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    // unique: true,
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: true,
@@ -45,6 +50,22 @@ const Promotion = sequelize.define('Promotion', {
     type: DataTypes.JSON,
     allowNull: true,
     comment: 'Array of service IDs; null means all services',
+  },
+  eligibleUsers: {
+    type: DataTypes.JSON,
+    allowNull: false,
+    comment: 'Array of user IDs, or ["All"] for all users',
+    defaultValue: ['All'],
+  },
+  couponUsedUsers: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of { phoneNumber, Name } objects',
+  },
+  usedCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
   },
   isActive: {
     type: DataTypes.BOOLEAN,

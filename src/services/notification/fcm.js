@@ -33,7 +33,7 @@ const sendPushNotification = async (
       }).map(([k, v]) => [k, String(v)])
     ),
   };
-
+console.log("send notification::",message)
   try {
     const response = await messaging.send(message);
     console.log('Successfully sent message:', response);

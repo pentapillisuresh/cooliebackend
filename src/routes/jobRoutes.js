@@ -12,21 +12,23 @@ const {
 
 router.use(auth);
 
+router.put('/:id/cancel', idParamValidator, jobController.cancelJob);
+router.get('/:id', idParamValidator, jobController.getJobById);
+// ─── User routes ──────────────────────────────────────────────────
+router.put('/:id/arrive', idParamValidator, jobController.arriveAtLocation);
+router.put('/:id/complete', idParamValidator, completeJobValidator, jobController.completeJob);
+router.put('/:id/rating', idParamValidator, jobController.updateJobRating);
+
 // ─── Worker routes ──────────────────────────────────────────────────
 router.get('/my', jobController.getMyJobs);
-router.get('/:id', idParamValidator, validate, jobController.getJobById);
-router.get('/:id/history', idParamValidator, validate, jobController.getJobHistory);
-router.put('/:id/accept', idParamValidator, validate, jobController.acceptJob);
-router.put('/:id/arrive', idParamValidator, validate, jobController.arriveAtLocation);
-router.post('/:id/confirm-otp', idParamValidator, confirmOTPValidator, validate, jobController.confirmOTP);
-router.put('/:id/complete', idParamValidator, completeJobValidator, validate, jobController.completeJob);
-router.put('/:id/cancel', idParamValidator, validate, jobController.cancelJob);
+router.get('/:id/history', idParamValidator, jobController.getJobHistory);
+router.put('/:id/accept', idParamValidator, jobController.acceptJob);
+router.post('/:id/confirm-otp', idParamValidator, confirmOTPValidator, jobController.confirmOTP);
 router.post('/:id/photos', idParamValidator, uploadMultiple('photos', 5), jobController.uploadJobPhotos);
-router.put('/:id/location', idParamValidator, validate, jobController.updateLocation);
-router.put('/:id/rating', idParamValidator, validate, jobController.updateJobRating);
+router.put('/:id/location', idParamValidator, jobController.updateLocation);
 
 // ─── Admin only ──────────────────────────────────────────────────────
 router.get('/', isAdmin, jobController.getAllJobs);
-router.put('/:id/reassign', isAdmin, idParamValidator, validate, jobController.reassignJob);
+router.put('/:id/reassign', isAdmin, idParamValidator, jobController.reassignJob);
 
 module.exports = router;

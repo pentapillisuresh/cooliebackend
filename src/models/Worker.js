@@ -37,9 +37,18 @@ const Worker = sequelize.define('Worker', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
   },
-  // Location fields
+  schedule: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue:[],
+    comment: 'Stores schedule information',
+  },
   latitude: DataTypes.DOUBLE,
   longitude: DataTypes.DOUBLE,
+  status: {
+    type: DataTypes.ENUM('working', 'active', 'inactive'),
+    defaultValue: 'inactive',
+  },
 });
 
 module.exports = Worker;

@@ -35,6 +35,17 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+  addressId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: { model: 'Addresses', key: 'id' },
+    onDelete: 'SET NULL',
+    comment: 'Optional: reference to saved address',
+  },
+  cancellationReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
   latitude: {
     type: DataTypes.DOUBLE,
     allowNull: true,
@@ -54,6 +65,30 @@ const Booking = sequelize.define('Booking', {
   estimatedArrival: {
     type: DataTypes.DATE,
     allowNull: true, // For live tracking (train arrival)
+  },
+  cancelledAt: {
+    type: DataTypes.DATE,
+    allowNull: true, // For live tracking (train arrival)
+  },
+  servicePrice: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00,
+  },
+  GST: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00,
+  },
+  convenianceCharges: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00,
+  },
+  discountAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00,
   },
   totalAmount: {
     type: DataTypes.DECIMAL(10, 2),
@@ -85,6 +120,10 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.UUID,
     allowNull: true,
   },
+  estimatedDurationMinutes: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  }  
 }, {
   timestamps: true,
   paranoid: true,

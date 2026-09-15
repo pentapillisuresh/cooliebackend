@@ -29,6 +29,7 @@ const Job = sequelize.define('Job', {
     type: DataTypes.ENUM(
       'assigned',     // worker has accepted
       'arrived',      // worker reached location (for transport: train arrived)
+      'accepted',     // worker accepted the slot ) 
       'in-progress',  // started work
       'completed',    // work finished
       'cancelled'
@@ -62,6 +63,14 @@ const Job = sequelize.define('Job', {
     allowNull: true,
   },
   workerLongitude: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+  },
+  userLatitude: {
+    type: DataTypes.DOUBLE,
+    allowNull: true,
+  },
+  userLongitude: {
     type: DataTypes.DOUBLE,
     allowNull: true,
   },

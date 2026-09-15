@@ -16,7 +16,7 @@ const generateToken = (user) => {
 // ─── Register a new user (with optional worker role) ─────────────────
 exports.register = async (req, res, next) => {
   try {
-    const { mobile, name, password, role, profession, experience, description } = req.body;
+    const { mobile, name, email, password, role, profession, experience, description } = req.body;
 
     // Check if user already exists
     const existing = await User.findOne({ where: { mobile } });
@@ -30,7 +30,7 @@ exports.register = async (req, res, next) => {
     // Create user
     const user = await User.create({
       mobile,
-      name,
+      name,email,
       password: hashedPassword,
       role: role || USER_ROLES.USER,
       isVerified: false,

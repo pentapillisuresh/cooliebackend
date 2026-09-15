@@ -1,7 +1,9 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { Payment, Booking } = require('../models');
+const { Payment, Booking, User,Service } = require('../models');
 const { PAYMENT_STATUS, BOOKING_STATUS } = require('../utils/constants');
+const { Op } = require('sequelize');
+const { getPagination, getPagingData } = require('../utils/helpers');
 
 // Initialize Razorpay instance
 const razorpay = new Razorpay({
@@ -41,7 +43,7 @@ exports.createRazorpayOrder = async (req, res, next) => {
       amount: amountInPaise,
       currency: 'INR',
       receipt: `booking_${bookingId}`,
-      payment_capture: 1, // Auto-capture
+
       notes: {
         bookingId: bookingId.toString(),
         userId: req.user.id.toString(),
@@ -104,8 +106,14 @@ exports.verifyPayment = async (req, res, next) => {
       .update(body.toString())
       .digest('hex');
 
-    const isSignatureValid = expectedSignature === razorpay_signature;
-
+    // const isSignatureValid = expectedSignature === razorpay_signature;
+    const isSignatureValid =
+    expectedSignature.length === razorpay_signature.length &&
+    crypto.timingSafeEqual(
+      Buffer.from(expectedSignature),
+      Buffer.from(razorpay_signature)
+    );
+  
     if (!isSignatureValid) {
       // Update payment status to failed
       await payment.update({

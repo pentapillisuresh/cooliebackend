@@ -61,6 +61,3 @@ console.log("token responce::",response)
 });
 
 module.exports = router;
-
-
-module.exports = router;

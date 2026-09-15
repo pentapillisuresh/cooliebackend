@@ -1,5 +1,5 @@
 const { Job, Booking, Worker, User, Service, Category } = require('../models');
-const { JOB_STATUS, BOOKING_STATUS } = require('../utils/constants');
+const { JOB_STATUS, BOOKING_STATUS,OTP_CONFIG } = require('../utils/constants');
 const { generateOTP, isOTPExpired, formatResponse } = require('../utils/helpers');
 const { Op } = require('sequelize');
 const { createNotification } = require('./notificationController');
@@ -7,8 +7,8 @@ const { createNotification } = require('./notificationController');
 /**
  * Helper: Get worker from authenticated user
  */
-const getWorkerFromUser = async (userId) => {
-  const worker = await Worker.findOne({ where: { userId } });
+const getWorkerFromUser = async (workerId) => {
+  const worker = await Worker.findOne({ where: { id:workerId } });
   if (!worker) {
     throw new Error('Worker profile not found');
   }
@@ -60,7 +60,7 @@ exports.getMyJobs = async (req, res, next) => {
 exports.getJobById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const worker = await getWorkerFromUser(req.user.id);
+    // const worker = await getWorkerFromUser(req.user.id);
 
     const job = await Job.findByPk(id, {
       include: [
@@ -80,9 +80,9 @@ exports.getJobById = async (req, res, next) => {
     }
 
     // Authorization: only the assigned worker or admin
-    if (req.user.role !== 'admin' && job.workerId !== worker.id) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    // if (req.user.role !== 'admin' ) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
 
     res.status(200).json({
       success: true,
@@ -155,15 +155,10 @@ exports.arriveAtLocation = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { latitude, longitude } = req.body;
-    const worker = await getWorkerFromUser(req.user.id);
 
     const job = await Job.findByPk(id);
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
-    }
-
-    if (job.workerId !== worker.id) {
-      return res.status(403).json({ error: 'Access denied' });
     }
 
     // Can mark arrived if assigned or already arrived
@@ -176,14 +171,6 @@ exports.arriveAtLocation = async (req, res, next) => {
       workerLatitude: latitude || job.workerLatitude,
       workerLongitude: longitude || job.workerLongitude,
     });
-
-    await createNotification(
-      id,
-      'Worker Arrived',
-      `The worker has arrived for your booking #${job.bookingId}`,
-      { bookingId: job.bookingId },
-      'booking'
-    );
     
     res.status(200).json({
       success: true,
@@ -229,6 +216,7 @@ exports.confirmOTP = async (req, res, next) => {
     // Clear OTP and move to in-progress
     await job.update({
       status: JOB_STATUS.IN_PROGRESS,
+      startedAt:new Date(),
       confirmationOtp: null,
       otpExpiry: null,
     });
@@ -253,16 +241,16 @@ exports.completeJob = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { afterPhotos, notes } = req.body;
-    const worker = await getWorkerFromUser(req.user.id);
+    // const worker = await getWorkerFromUser(req.user.id);
 
     const job = await Job.findByPk(id);
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    if (job.workerId !== worker.id) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    // if (job.workerId !== worker.id) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
 
     // Must be in-progress
     if (job.status !== JOB_STATUS.IN_PROGRESS) {
@@ -478,15 +466,15 @@ exports.cancelJob = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    const worker = await getWorkerFromUser(req.user.id);
+    // const worker = await getWorkerFromUser(req.user.id);
 
     const job = await Job.findByPk(id);
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
     }
-    if (job.workerId !== worker.id) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    // if (job.workerId !== worker.id) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
     if ([JOB_STATUS.COMPLETED, JOB_STATUS.CANCELLED].includes(job.status)) {
       return res.status(400).json({ error: 'Job cannot be cancelled' });
     }

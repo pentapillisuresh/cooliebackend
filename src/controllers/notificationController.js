@@ -162,6 +162,7 @@ exports.createNotification = async (userId, title, body, data = {}, type = 'syst
     // Send push notification if user has token
     const user = await User.findByPk(userId, { attributes: ['fcmToken'] });
     if (user && user.fcmToken) {
+      console.log("worker token::",user.fcmToken)
       await sendPushNotification(user.fcmToken, title, body, data);
     }
     return notification;

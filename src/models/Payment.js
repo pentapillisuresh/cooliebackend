@@ -30,7 +30,7 @@ const Payment = sequelize.define('Payment', {
     defaultValue: 'razorpay',
   },
   status: {
-    type: DataTypes.ENUM('pending', 'success', 'failed', 'refunded'),
+    type: DataTypes.ENUM('pending','paid', 'success', 'failed', 'refunded'),
     defaultValue: 'pending',
   },
   transactionId: {

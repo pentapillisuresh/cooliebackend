@@ -7,7 +7,9 @@ const { idParamValidator, validate } = require('../utils/validators');
 // ─── Public (no authentication required) ──────────────────────
 router.get('/', promotionController.getActivePromotions);
 router.get('/:id', idParamValidator, validate, promotionController.getPromotionById);
-
+// Public (authenticated)
+router.post('/validate', auth, promotionController.validatePromotion);
+router.post('/apply', auth, promotionController.applyPromotion);
 // ─── Admin only ──────────────────────────────────────────────
 router.post('/', auth, isAdmin, promotionController.createPromotion);
 router.put('/:id', auth, isAdmin, idParamValidator, validate, promotionController.updatePromotion);

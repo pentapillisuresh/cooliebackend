@@ -11,7 +11,7 @@ const Payment = require('./Payment');
 const Review = require('./Review');
 const Notification = require('./Notification');
 const Promotion = require('./Promotion');
-const Coupon = require('./Coupon');
+const Address = require('./Address');
 
 // User ↔ Worker (one-to-one)
 User.hasOne(Worker, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -57,6 +57,9 @@ Review.belongsTo(User, { foreignKey: 'userId' });
 Worker.hasMany(Review, { foreignKey: 'workerId' });
 Review.belongsTo(Worker, { foreignKey: 'workerId' });
 
+User.hasMany(Address, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Address.belongsTo(User, { foreignKey: 'userId' });
+
 module.exports = {
   sequelize,
   User,
@@ -67,7 +70,7 @@ module.exports = {
   Job,Notification,
   Document,
   Payment,
+  Address,
   Review,
-  Coupon,
   Promotion,
 };

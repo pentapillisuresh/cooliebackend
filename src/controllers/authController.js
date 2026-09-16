@@ -131,7 +131,7 @@ exports.sendOTP = async (req, res, next) => {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Find or create user
-    let user = await User.findOne({ where: { mobile } });
+    let user = await User.findOne({ where: { mobile} });
     if (!user) {
       // Create temporary user for OTP login flow
       user = await User.create({
@@ -143,6 +143,48 @@ exports.sendOTP = async (req, res, next) => {
         otp,
         otpExpiry,
       });
+    } else {
+      await user.update({ otp, otpExpiry });
+    }
+
+    // In production, send SMS via gateway
+    // For development, return OTP in response
+    if (process.env.NODE_ENV === 'development') {
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent',
+        otp,
+        userId: user.id,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully',
+      userId: user.id,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.sendWorkerOTP = async (req, res, next) => {
+
+  try {
+    const { mobile, role } = req.body;
+    if (!mobile) {
+      return res.status(400).json({ error: 'Mobile number is required' });
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Find or create user
+    let user = await User.findOne({ where: { mobile,role:"worker" } });
+    if (!user) {
+      // Create temporary user for OTP login flow
+      return res.status(400).json({ error: 'Service Partner not found please register ' });
     } else {
       await user.update({ otp, otpExpiry });
     }

@@ -8,6 +8,7 @@ const { registerValidator, loginValidator, validate } = require('../utils/valida
 router.post('/register', registerValidator,  authController.register);
 router.post('/login', loginValidator,  authController.login);
 router.post('/send-otp', authController.sendOTP);
+router.post('/send-worker-otp', authController.sendWorkerOTP);
 router.post('/verify-otp', authController.verifyOTP);
 router.post('/resend-otp', authController.resendOTP);
 

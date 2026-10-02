@@ -354,7 +354,7 @@ const serviceMetadata = {
         sortOrder: 3,
         isActive: true,
         services: [
-          { name: "AC Repair", slug: "ac-repair", description: "AC cooling and gas filling", basePrice: 499, duration: 60, image: "https://picsum.photos/seed/ac-repair/200/150",metadata: serviceMetadata['stress-relief-massage'] },
+          { name: "AC Repair", slug: "ac-repair", description: "AC cooling and gas filling", basePrice: 499, duration: 60, image: "https://picsum.photos/seed/ac-repair/200/150",metadata: serviceMetadata['ac-repair'] },
           { name: "RO Service", slug: "ro-service", description: "Filter replacement and TDS check", basePrice: 399, duration: 45, image: "https://picsum.photos/seed/ro-service/200/150",metadata: serviceMetadata['ro-service'] },
           { name: "Washing Machine Repair", slug: "washing-machine-repair", description: "Motor and drum repair", basePrice: 449, duration: 60, image: "https://picsum.photos/seed/washing-machine/200/150",metadata: serviceMetadata['washing-machine-repair'] },
           { name: "Refrigerator Repair", slug: "refrigerator-repair", description: "Cooling and compressor fix", basePrice: 499, duration: 60, image: "https://picsum.photos/seed/refrigerator/200/150",metadata: serviceMetadata['refrigerator-repair'] },

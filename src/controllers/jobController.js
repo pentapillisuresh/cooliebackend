@@ -1,14 +1,15 @@
 const { Job, Booking, Worker, User, Service, Category } = require('../models');
-const { JOB_STATUS, BOOKING_STATUS,OTP_CONFIG } = require('../utils/constants');
+const { JOB_STATUS, BOOKING_STATUS, OTP_CONFIG } = require('../utils/constants');
 const { generateOTP, isOTPExpired, formatResponse } = require('../utils/helpers');
 const { Op } = require('sequelize');
 const { createNotification } = require('./notificationController');
+const { messaging } = require('../config/firebase');
 
 /**
  * Helper: Get worker from authenticated user
  */
-const getWorkerFromUser = async (workerId) => {
-  const worker = await Worker.findOne({ where: { id:workerId } });
+const getWorkerFromUser = async (userId) => {
+  const worker = await Worker.findOne({ where: { userId: userId } });
   if (!worker) {
     throw new Error('Worker profile not found');
   }
@@ -23,7 +24,7 @@ exports.getMyJobs = async (req, res, next) => {
     const worker = await getWorkerFromUser(req.user.id);
     const { status, page, limit } = req.query;
     const { offset, limit: lim } = require('../utils/helpers').getPagination(page, limit);
-
+    console.log("job:::", status)
     const where = { workerId: worker.id };
     if (status) where.status = status;
 
@@ -157,24 +158,122 @@ exports.arriveAtLocation = async (req, res, next) => {
     const { latitude, longitude } = req.body;
 
     const job = await Job.findByPk(id);
+
     if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
+      return res.status(404).json({
+        error: 'Job not found',
+      });
     }
 
-    // Can mark arrived if assigned or already arrived
-    if (![JOB_STATUS.ASSIGNED, JOB_STATUS.ARRIVED].includes(job.status)) {
-      return res.status(400).json({ error: 'Job cannot be marked as arrived' });
+    const worker = await Worker.findByPk(job.workerId);
+
+    if (!worker) {
+      return res.status(404).json({
+        error: 'Worker not found',
+      });
+    }
+
+    // Make sure the logged-in user owns this worker account
+    if (worker.userId !== req.user.id) {
+      return res.status(403).json({
+        error: 'You are not authorized to update this job',
+      });
+    }
+
+    // Can mark arrived only when assigned or already arrived
+    if (
+      ![JOB_STATUS.ASSIGNED, JOB_STATUS.ARRIVED].includes(job.status)
+    ) {
+      return res.status(400).json({
+        error: 'Job cannot be marked as arrived',
+      });
     }
 
     await job.update({
       status: JOB_STATUS.ARRIVED,
-      workerLatitude: latitude || job.workerLatitude,
-      workerLongitude: longitude || job.workerLongitude,
+      workerLatitude: latitude ?? job.workerLatitude,
+      workerLongitude: longitude ?? job.workerLongitude,
     });
-    
-    res.status(200).json({
+
+    await worker.update({
+      status: 'working',
+    });
+
+    return res.status(200).json({
       success: true,
       data: job,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.generateCompleteOTP = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const job = await Job.findByPk(id);
+
+    if (!job) {
+      return res.status(404).json({
+        error: 'Job not found',
+      });
+    }
+
+    // Generate only if OTP doesn't already exist
+    if (!job.completionOtp) {
+      const completionOtp = Math.floor(
+        100000 + Math.random() * 900000
+      ).toString();
+
+      await job.update({
+        completionOtp,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Completion OTP generated successfully',
+      data: {
+        jobId: job.id,
+        completionOtp: job.completionOtp,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.generateConfirmationOTP = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const job = await Job.findByPk(id);
+
+    if (!job) {
+      return res.status(404).json({
+        error: 'Job not found',
+      });
+    }
+
+    // Generate only if OTP doesn't already exist
+    if (!job.confirmationOtp) {
+      const confirmationOtp = Math.floor(
+        100000 + Math.random() * 900000
+      ).toString();
+
+      await job.update({
+        confirmationOtp,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Completion OTP generated successfully',
+      data: {
+        jobId: job.id,
+        confirmationOtp: job.confirmationOtp,
+      },
     });
   } catch (error) {
     next(error);
@@ -216,7 +315,7 @@ exports.confirmOTP = async (req, res, next) => {
     // Clear OTP and move to in-progress
     await job.update({
       status: JOB_STATUS.IN_PROGRESS,
-      startedAt:new Date(),
+      startedAt: new Date(),
       confirmationOtp: null,
       otpExpiry: null,
     });
@@ -240,42 +339,72 @@ exports.confirmOTP = async (req, res, next) => {
 exports.completeJob = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { afterPhotos, notes } = req.body;
-    // const worker = await getWorkerFromUser(req.user.id);
-
+    const { afterPhotos, notes, completionOtp } = req.body;
     const job = await Job.findByPk(id);
+
     if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
+      return res.status(404).json({
+        error: 'Job not found',
+      });
     }
 
-    // if (job.workerId !== worker.id) {
-    //   return res.status(403).json({ error: 'Access denied' });
-    // }
-
-    // Must be in-progress
+    // Job must be in progress
     if (job.status !== JOB_STATUS.IN_PROGRESS) {
-      return res.status(400).json({ error: 'Job is not in progress' });
+      return res.status(400).json({
+        error: 'Job is not in progress',
+      });
     }
 
-    // Update job
+    // Validate OTP
+    if (!completionOtp) {
+      return res.status(400).json({
+        error: 'Completion OTP is required',
+      });
+    }
+
+    if (job.completionOtp !== completionOtp) {
+      return res.status(401).json({
+        error: 'Invalid completion OTP',
+      });
+    }
+
+    // Find worker
+    const worker = await Worker.findByPk(job.workerId);
+
+    if (!worker) {
+      return res.status(404).json({
+        error: 'Worker not found',
+      });
+    }
+
+    // Complete job
     await job.update({
       status: JOB_STATUS.COMPLETED,
       completedAt: new Date(),
+      completionOtp: null,
       afterPhotos: afterPhotos || job.afterPhotos,
       notes: notes || job.notes,
     });
 
-    // Update booking to payment-pending
-    await Booking.update({ status: BOOKING_STATUS.PAYMENT_PENDING }, { where: { id: job.bookingId } });
+    // Update booking
+    await Booking.update(
+      {
+        status: BOOKING_STATUS.COMPLETED,
+      },
+      {
+        where: {
+          id: job.bookingId,
+        },
+      }
+    );
 
-    // Increment worker's total jobs count
+    // Increment worker's completed jobs
     await worker.increment('totalJobs');
 
-    // (Optional) Calculate rating later
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: job,
+      message: 'Job completed successfully',
     });
   } catch (error) {
     next(error);

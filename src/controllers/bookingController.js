@@ -75,20 +75,51 @@ exports.createBooking = async (req, res, next) => {
       status: BOOKING_STATUS.PENDING,
       paymentStatus: PAYMENT_STATUS.PENDING,
     });
-    const location = { latitude, longitude }
-    try {
-      const service = await Service.findByPk(serviceId, { include: [{ model: Category }] });
-      console.log("serviceId::", serviceId)
-      const job = await assignWorkerToBooking(booking, service, location);
-      if (job) {
-        console.log(`✅ Worker ${job.workerId} auto-assigned to booking ${booking.id}`);
-      } else {
-        console.log(`⚠️ No available worker for booking ${booking.id}`);
-      }
-    } catch (error) {
-      console.error('Auto-assignment error:', error);
+
+    res.status(201).json({
+      success: true,
+      data: booking,
+    });
+  } catch (error) {
+    console.error('❌ Booking creation error:');
+    console.error('Message:', error.message);
+    console.error('Name:', error.name);
+    console.error('SQL:', error.sql);
+    console.error('Original error:', error.original);
+    console.error('Parent error:', error.parent);
+    console.error('Stack:', error.stack);
+
+    next(error);
+  }
+};
+
+exports.checkAvailability = async (req, res, next) => {
+  try {
+    const {
+      serviceId,
+      address,
+      scheduledDate,
+      scheduledTime,
+    } = req.query;
+console.log("bodys serviceId::",serviceId)
+    let finalAddress = address;
+
+    // Validate service exists
+    const service = await Service.findByPk(serviceId);
+    if (!service) {
+      return res.status(400).json({ error: 'Invalid service' });
     }
 
+    // Create booking
+    const booking = await Booking.findOne({
+      where: {
+        userId: req.user.id,
+        serviceId,
+        address: finalAddress,
+        scheduledDate,
+        scheduledTime,
+      }
+    });
     // (could be added here)
 
     res.status(201).json({
@@ -117,6 +148,7 @@ exports.getMyBookings = async (req, res, next) => {
     const { offset, limit: lim } = getPagination(page, limit);
 
     const where = { userId: req.user.id };
+
     if (status) {
       where.status = status;
     }
@@ -302,7 +334,7 @@ exports.assignWorker = async (req, res, next) => {
     }
 
     // Create job
-    const job = await Job.create({
+    const job = await ({
       bookingId: booking.id,
       workerId: worker.id,
       status: JOB_STATUS.ASSIGNED,

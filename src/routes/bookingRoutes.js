@@ -13,6 +13,7 @@ router.use(auth);
 
 // ─── User routes ────────────────────────────────────────────────────
 router.post('/', createBookingValidator,createBookingValidator, bookingController.createBooking);
+router.get('/checkAvailability', bookingController.checkAvailability);
 router.get('/my', bookingController.getMyBookings);
 router.get('/:id', idParamValidator, bookingController.getBookingById);
 router.put('/:id', idParamValidator, updateBookingValidator, bookingController.updateBooking);

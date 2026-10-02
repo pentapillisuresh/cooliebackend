@@ -16,6 +16,16 @@ const Payment = sequelize.define('Payment', {
     },
     onDelete: 'CASCADE',
   },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
+
   amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,

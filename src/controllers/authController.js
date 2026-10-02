@@ -16,16 +16,18 @@ const generateToken = (user) => {
 // ─── Register a new user (with optional worker role) ─────────────────
 exports.register = async (req, res, next) => {
   try {
-    const { mobile, name, email, password, role, profession, experience, description } = req.body;
+    const { mobile, name, email, password, role, profession, experience, description,profileImage } = req.body;
 
     // Check if user already exists
     const existing = await User.findOne({ where: { mobile } });
     if (existing) {
       return res.status(400).json({ error: 'User with this mobile number already exists' });
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword='';
+    if (password) {
+      // Hash password
+       hashedPassword = await bcrypt.hash(password, 10);
+    }
 
     // Create user
     const user = await User.create({
@@ -34,6 +36,7 @@ exports.register = async (req, res, next) => {
       password: hashedPassword,
       role: role || USER_ROLES.USER,
       isVerified: false,
+      profileImage
     });
 
     // If registering as worker, create worker profile
@@ -213,7 +216,7 @@ exports.sendWorkerOTP = async (req, res, next) => {
 // ─── Verify OTP ──────────────────────────────────────────────────────
 exports.verifyOTP = async (req, res, next) => {
   try {
-    const { mobile, otp, name, password, role, profession } = req.body;
+    const { mobile, otp, role} = req.body;
 
     if (!mobile || !otp) {
       return res.status(400).json({ error: 'Mobile and OTP are required' });
@@ -236,25 +239,12 @@ exports.verifyOTP = async (req, res, next) => {
 
     // Update user details if provided (for registration flow)
     const updates = { isVerified: true, otp: null, otpExpiry: null };
-    if (name) updates.name = name;
-    if (password) {
-      updates.password = await bcrypt.hash(password, 10);
-    }
-    if (role) updates.role = role;
-
     await user.update(updates);
 
     // If registering as worker, create worker profile
     let worker = null;
-    if (role === USER_ROLES.WORKER && profession) {
-      worker = await Worker.create({
-        userId: user.id,
-        profession,
-        isVerified: false,
-        isAvailable: true,
-        rating: 0,
-        totalJobs: 0,
-      });
+    if (role === USER_ROLES.WORKER) {
+      worker=await Worker.findOne({where:{userId:user.id}})
     }
 
     // Generate token

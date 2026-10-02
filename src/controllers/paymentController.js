@@ -1,9 +1,10 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { Payment, Booking, User,Service } = require('../models');
+const { Payment, Booking, User,Worker,Job,Service, Category } = require('../models');
 const { PAYMENT_STATUS, BOOKING_STATUS } = require('../utils/constants');
 const { Op } = require('sequelize');
 const { getPagination, getPagingData } = require('../utils/helpers');
+const { assignWorkerToBooking } = require('../utils/workerAssignment');
 
 // Initialize Razorpay instance
 const razorpay = new Razorpay({
@@ -55,6 +56,7 @@ exports.createRazorpayOrder = async (req, res, next) => {
     // Create payment record with pending status
     const payment = await Payment.create({
       bookingId,
+      userId:Number(req.user.id),
       amount: booking.totalAmount,
       currency: 'INR',
       paymentMethod: 'razorpay',
@@ -135,14 +137,27 @@ exports.verifyPayment = async (req, res, next) => {
       gatewayResponse: { ...payment.gatewayResponse, razorpay_payment_id, razorpay_signature },
     });
 
-    // Update booking status to completed (or keep as payment-pending if service not yet done)
-    // Since payment is done, set booking status to completed (or payment-pending depending on workflow)
-    // Here we set to completed as payment confirms the job is done
+    
     const booking = await Booking.findByPk(bookingId);
     if (booking) {
-      await booking.update({ status: BOOKING_STATUS.COMPLETED, paymentStatus: PAYMENT_STATUS.PAID });
-    }
+      
+    const location = { latitude:booking.latitude, longitude:booking.longitude }
+    try {
+        const service = await Service.findByPk(booking.serviceId, { include: [{ model: Category }] });
 
+        const job = await assignWorkerToBooking(booking, service,location);
+        if (job) {
+          console.log(`✅ Worker ${job.workerId} auto-assigned to booking ${booking.id}`);
+        } else {
+          console.log(`⚠️ No available worker for booking ${booking.id}`);
+        }
+      } catch (error) {
+        console.error('Auto-assignment error:', error);
+      }finally{
+        await booking.update({  paymentStatus: PAYMENT_STATUS.PAID });
+      }
+    }
+ 
     res.status(200).json({
       success: true,
       message: 'Payment verified successfully',

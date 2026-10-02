@@ -10,6 +10,8 @@ const { uploadSingle, uploadMultiple } = require('../middleware/upload');
 router.post('/single', uploadSingle('file'), uploadController.uploadSingleFile);
 router.post('/multiple', uploadMultiple('files', 5), uploadController.uploadMultipleFiles);
 router.post('/video', uploadSingle('video'), uploadController.uploadVideo);
+router.post('/signed-url', uploadController.signedUrl);
+router.post('/signed-read', uploadController.signedReadUrl);
 
 // ─── File management ────────────────────────────────────────────────
 router.delete('/*filePath', uploadController.deleteFile);

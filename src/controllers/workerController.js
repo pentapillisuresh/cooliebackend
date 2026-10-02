@@ -1,4 +1,4 @@
-const { Worker, User, Document, BankDetail, Job, Booking, Review } = require('../models');
+const { Worker, User, Document, BankDetail, Job, Booking, Review, Payment } = require('../models');
 const { getPagination, getPagingData } = require('../utils/helpers');
 const { Op } = require('sequelize');
 
@@ -123,10 +123,11 @@ exports.toggleAvailability = async (req, res, next) => {
     if (!worker) {
       return res.status(404).json({ error: 'Worker not found' });
     }
-    await worker.update({ isAvailable: !worker.isAvailable });
+    const status=worker.status="active"?"inactive":"active"
+    await worker.update({ status: status });
     res.status(200).json({
       success: true,
-      data: { isAvailable: worker.isAvailable },
+      data: { status:status },
     });
   } catch (error) {
     next(error);
@@ -139,6 +140,7 @@ exports.toggleAvailability = async (req, res, next) => {
  * Get worker's dashboard statistics (total jobs, earnings, rating, etc.)
  */
 exports.getWorkerStats = async (req, res, next) => {
+  console.log("work:::",req.user.id)
   try {
     const worker = await Worker.findOne({ where: { userId: req.user.id } });
     if (!worker) {

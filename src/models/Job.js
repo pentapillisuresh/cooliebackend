@@ -27,14 +27,16 @@ const Job = sequelize.define('Job', {
   // Status specific to worker's progress
   status: {
     type: DataTypes.ENUM(
+      'pending', 
       'assigned',     // worker has accepted
-      'arrived',      // worker reached location (for transport: train arrived)
       'accepted',     // worker accepted the slot ) 
+      'on-the-way',
+      'arrived',      // worker reached location (for transport: train arrived)
       'in-progress',  // started work
       'completed',    // work finished
       'cancelled'
     ),
-    defaultValue: 'assigned',
+    defaultValue: 'pending',
   },
   assignedAt: {
     type: DataTypes.DATE,
@@ -50,6 +52,10 @@ const Job = sequelize.define('Job', {
   },
   // For confirmation OTP (mutual confirmation)
   confirmationOtp: {
+    type: DataTypes.STRING(6),
+    allowNull: true,
+  },
+  completionOtp: {
     type: DataTypes.STRING(6),
     allowNull: true,
   },

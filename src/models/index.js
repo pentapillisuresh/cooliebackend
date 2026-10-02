@@ -1,21 +1,34 @@
 const sequelize = require('../config/database');
 
+const Address = require('./Address');
 const User = require('./User');
 const Worker = require('./Worker');
 const Category = require('./Category');
+const Certificate = require('./Certificate');
+const FAQ = require('./FAQ');
 const Service = require('./Service');
 const Booking = require('./Booking');
+const BankDetail = require('./BankDetail');
 const Job = require('./Job');
+const Notification = require('./Notification');
 const Document = require('./Document');
 const Payment = require('./Payment');
 const Review = require('./Review');
-const Notification = require('./Notification');
+const Ticket = require('./Ticket');
+const Training = require('./Training');
+const TrainingVideo = require('./TrainingVideo');
+const TicketReply = require('./TicketReply');
 const Promotion = require('./Promotion');
-const Address = require('./Address');
+const Quiz = require('./Quiz');
+const QuizAttempt = require('./QuizAttempt');
+const QuizQuestion = require('./QuizQuestion');
 
 // User ↔ Worker (one-to-one)
 User.hasOne(Worker, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Worker.belongsTo(User, { foreignKey: 'userId' });
+
+Worker.hasOne(BankDetail, { foreignKey: 'workerId', onDelete: 'CASCADE' });
+BankDetail.belongsTo(Worker, { foreignKey: 'workerId' });
 
 // Category ↔ Service (one-to-many)
 Category.hasMany(Service, { foreignKey: 'categoryId', onDelete: 'CASCADE' });
@@ -45,6 +58,9 @@ Document.belongsTo(Worker, { foreignKey: 'workerId' });
 Booking.hasOne(Payment, { foreignKey: 'bookingId' });
 Payment.belongsTo(Booking, { foreignKey: 'bookingId' });
 
+User.hasMany(Payment, { foreignKey: 'userId' });
+Payment.belongsTo(User, { foreignKey: 'userId' });
+
 // Booking ↔ Review (one-to-one)
 Booking.hasOne(Review, { foreignKey: 'bookingId' });
 Review.belongsTo(Booking, { foreignKey: 'bookingId' });
@@ -60,17 +76,40 @@ Review.belongsTo(Worker, { foreignKey: 'workerId' });
 User.hasMany(Address, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Address.belongsTo(User, { foreignKey: 'userId' });
 
+User.hasMany(Ticket, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Ticket.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(TicketReply, { foreignKey: 'userId', onDelete: 'CASCADE' });
+TicketReply.belongsTo(User, { foreignKey: 'userId' });
+
+Ticket.hasMany(TicketReply, { foreignKey: 'ticketId', onDelete: 'CASCADE' });
+TicketReply.belongsTo(Ticket, { foreignKey: 'ticketId' });
+
+Booking.hasMany(Ticket, { foreignKey: 'bookingId', onDelete: 'CASCADE' });
+Ticket.belongsTo(Booking, { foreignKey: 'bookingId' });
+
 module.exports = {
   sequelize,
   User,
   Worker,
+  BankDetail,
   Category,
+  Certificate,
   Service,
   Booking,
-  Job,Notification,
+  Job,
+  Notification,
   Document,
+  FAQ,
+  Ticket,
+  TicketReply,
   Payment,
   Address,
   Review,
   Promotion,
+  Quiz,
+  Training,
+  TrainingVideo,
+  QuizAttempt,
+  QuizQuestion
 };

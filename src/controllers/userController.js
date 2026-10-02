@@ -1,14 +1,54 @@
-const { User } = require('../models');
+const { User, BankDetail, Address, Booking,Worker,Document} = require('../models');
 const bcrypt = require('bcryptjs');
 
 // ─── User self-profile ────────────────────────────────────────────
 exports.getProfile = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password', 'otp', 'otpExpiry'] }
+      attributes: {
+        exclude: ["password", "otp", "otpExpiry"],
+      },
+
+      include: [
+        // User addresses
+        {
+          model: Address,
+        },
+
+        // User bookings
+        {
+          model: Booking,
+        },
+
+        // Worker profile, if this user is a worker
+        {
+          model: Worker,
+          include: [
+            {
+              model: BankDetail,
+            },
+            {
+              model: Document,
+            },
+          ],
+        },
+      ],
     });
-    res.status(200).json({ success: true, data: user });
-  } catch (error) { next(error); }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 exports.updateProfile = async (req, res, next) => {

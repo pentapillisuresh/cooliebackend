@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { deleteFile } = require('../services/processUpload');
+const { getUploadSignedUrl, getReadSignedUrl } = require('../services/gcsService');
 
 // Single file upload
 exports.uploadSingleFile = (req, res) => {
@@ -106,4 +107,58 @@ exports.uploadVideo = async (req, res) => {
     next(error);
   }
 };
+exports.signedUrl = async (req, res) => {
+  try {
+    const { fileName, mimeType, fileType = 'image' } = req.body;
+
+    if (!fileName || !mimeType) {
+      return res
+        .status(400)
+        .json({ error: 'fileName and mimeType are required' });
+    }
+
+    let subFolder = 'images';
+    let maxSizeBytes = 10 * 1024 * 1024; // 10 MB for images
+
+    if (fileType === 'document' || mimeType === 'application/pdf') {
+      subFolder = 'documents';
+      maxSizeBytes = 25 * 1024 * 1024;   // 25 MB for documents
+    }
+
+    const result = await getUploadSignedUrl(
+      fileName,
+      mimeType,
+      subFolder,
+      maxSizeBytes
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        uploadUrl: result.url,
+        filePath: result.filePath,
+        fullUrl: result.fullUrl,
+        requiredHeaders: result.requiredHeaders,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }};
+
+exports.signedReadUrl = async (req, res) => {
+  try {
+    const { path: filePath } = req.query;
+    if (!filePath) {
+      return res.status(400).json({ error: 'path query param is required' });
+    }
+
+    const url = await getReadSignedUrl(filePath, 60 * 60 * 1000); // 1 hour
+
+    res.json({
+      success: true,
+      data: { url, expiresIn: 3600 },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }};
 

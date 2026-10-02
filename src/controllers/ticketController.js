@@ -8,7 +8,7 @@ const { USER_ROLES } = require('../utils/constants');
  */
 exports.createTicket = async (req, res, next) => {
   try {
-    const { subject, message, category, priority } = req.body;
+    const { subject, message, category, priority,bookingId } = req.body;
 
     if (!subject || !message) {
       return res.status(400).json({ error: 'Subject and message are required' });
@@ -20,7 +20,8 @@ exports.createTicket = async (req, res, next) => {
       message,
       category: category || 'general',
       priority: priority || 'medium',
-      status: 'open',
+      bookingId,
+      status: 'pending',
     });
 
     res.status(201).json({ success: true, data: ticket });
@@ -127,7 +128,7 @@ exports.replyToTicket = async (req, res, next) => {
     });
 
     // If admin replies, update ticket status to 'in-progress'
-    if (req.user.role === USER_ROLES.ADMIN && ticket.status === 'open') {
+    if (req.user.role === USER_ROLES.ADMIN && ticket.status === 'pending') {
       await ticket.update({ status: 'in-progress' });
     }
 
@@ -282,7 +283,7 @@ exports.assignTicket = async (req, res, next) => {
 exports.getTicketStats = async (req, res, next) => {
   try {
     const total = await Ticket.count();
-    const open = await Ticket.count({ where: { status: 'open' } });
+    const pending = await Ticket.count({ where: { status: 'pending' } });
     const inProgress = await Ticket.count({ where: { status: 'in-progress' } });
     const resolved = await Ticket.count({ where: { status: 'resolved' } });
     const closed = await Ticket.count({ where: { status: 'closed' } });
@@ -298,7 +299,7 @@ exports.getTicketStats = async (req, res, next) => {
       success: true,
       data: {
         total,
-        open,
+        pending,
         inProgress,
         resolved,
         closed,

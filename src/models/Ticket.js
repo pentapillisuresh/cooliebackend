@@ -16,6 +16,16 @@ const Ticket = sequelize.define('Ticket', {
     },
     onDelete: 'CASCADE',
   },
+  bookingId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Bookings',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
+
   subject: {
     type: DataTypes.STRING(200),
     allowNull: false,
@@ -33,8 +43,8 @@ const Ticket = sequelize.define('Ticket', {
     defaultValue: 'medium',
   },
   status: {
-    type: DataTypes.ENUM('open', 'in-progress', 'resolved', 'closed'),
-    defaultValue: 'open',
+    type: DataTypes.ENUM('pending', 'in-progress', 'resolved', 'closed'),
+    defaultValue: 'pending',
   },
   assignedTo: {
     type: DataTypes.INTEGER,

@@ -93,12 +93,15 @@ const Booking = sequelize.define('Booking', {
   totalAmount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0.00,
+    defaultValue: 0.00, 
   },
   status: {
     type: DataTypes.ENUM(
-      'pending',        // just created
-      'accepted',       // worker assigned
+      'pending', 
+      'assigned',        // just created
+      'accepted',
+      'arrived',
+      'on-the-way',      // worker assigned
       'in-progress',    // worker started
       'completed',      // work done
       'payment-pending',// completed but unpaid

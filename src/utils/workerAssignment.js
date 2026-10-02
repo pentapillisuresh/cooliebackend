@@ -62,57 +62,117 @@ const isWorkerAvailable = (worker, scheduledDate, scheduledTime, durationMinutes
  * @param {object} location - { latitude, longitude } (optional)
  * @returns {Promise<Worker|null>}
  */
-const findAvailableWorker = async (serviceId, scheduledDate, scheduledTime, location = null) => {
-  console.log("findAvailableWorker::",serviceId)
-  // 1. Get service with category and duration
+const findAvailableWorker = async (
+  serviceId,
+  scheduledDate,
+  scheduledTime,
+  location = null
+) => {
+  console.log("findAvailableWorker::", serviceId);
+
+  // 1. Get service
   const service = await Service.findByPk(serviceId, {
     include: [{ model: Category }],
   });
+
   if (!service) return null;
 
-  const profession = service.Category?.name;
-  const duration = service.duration || 0; // in minutes
+  const serviceName = service.name.trim();
+  const duration = service.duration || 0;
 
-  // 2. Find active, verified workers with matching profession
+  // 2. Get active + verified workers
   const workers = await Worker.findAll({
     where: {
-      profession: profession,
-      status: 'active',
+      status: "active",
       isVerified: true,
     },
   });
 
-  if (!workers || workers.length === 0) return null;
+  if (!workers || workers.length === 0) {
+    return null;
+  }
 
-  // 3. Filter by schedule availability
-  const availableWorkers = workers.filter(worker =>
-    isWorkerAvailable(worker, scheduledDate, scheduledTime, duration)
+  // 3. Filter workers who provide this service
+  const matchingWorkers = workers.filter((worker) => {
+    if (!worker.profession) return false;
+
+    const professions = worker.profession
+      .split(",")
+      .map((item) => item.trim().toLowerCase());
+
+    return professions.includes(serviceName.toLowerCase());
+  });
+
+  if (matchingWorkers.length === 0) {
+    return null;
+  }
+
+  // 4. Filter by availability
+  const availableWorkers = matchingWorkers.filter((worker) =>
+    isWorkerAvailable(
+      worker,
+      scheduledDate,
+      scheduledTime,
+      duration
+    )
   );
 
-  if (availableWorkers.length === 0) return null;
+  if (availableWorkers.length === 0) {
+    return null;
+  }
 
-  // 4. Sort by location proximity (if lat/lng available)
-  if (location?.latitude && location?.longitude) {
-    const getDistance = (lat1, lon1, lat2, lon2) => {
-      const R = 6371; // Earth radius in km
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    };
+  // 5. Calculate distance
+  const getDistance = (lat1, lon1, lat2, lon2) => {
+    if (
+      lat1 == null ||
+      lon1 == null ||
+      lat2 == null ||
+      lon2 == null
+    ) {
+      return Infinity;
+    }
 
+    const R = 6371;
+
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+
+  // 6. Sort by nearest worker
+  if (
+    location?.latitude != null &&
+    location?.longitude != null
+  ) {
     availableWorkers.sort((a, b) => {
-      const distA = getDistance(location.latitude, location.longitude, a.latitude, a.longitude);
-      const distB = getDistance(location.latitude, location.longitude, b.latitude, b.longitude);
-      return distA - distB;
+      const distanceA = getDistance(
+        location.latitude,
+        location.longitude,
+        a.latitude,
+        a.longitude
+      );
+
+      const distanceB = getDistance(
+        location.latitude,
+        location.longitude,
+        b.latitude,
+        b.longitude
+      );
+
+      return distanceA - distanceB;
     });
   }
 
-  // Return the closest/available worker
+  // 7. Return closest available worker
   return availableWorkers[0];
 };
 
@@ -128,7 +188,6 @@ const findAvailableWorker = async (serviceId, scheduledDate, scheduledTime, loca
 // (Assuming io is stored globally in server.js: global.io = io)
 
 const assignWorkerToBooking = async (booking, service, location = null) => {
-  console.log("assignWorkerToBooking::",booking.serviceId)
   const worker = await findAvailableWorker(
     booking.serviceId,
     booking.scheduledDate,
@@ -143,11 +202,11 @@ const assignWorkerToBooking = async (booking, service, location = null) => {
     bookingId: booking.id,
     workerId: worker.id,
     status: JOB_STATUS.ASSIGNED,
+    userLatitude:booking.latitude,
+    userLongitude:booking.longitude,
     assignedAt: new Date(),
   });
-
-  // Update booking status
-  await booking.update({ status: BOOKING_STATUS.ACCEPTED });
+  await booking.update({ status: job.status });
 
   // ─── Emit socket events ────────────────────────────────────────
   const io = global.io; // from server.js

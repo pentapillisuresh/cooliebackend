@@ -13,9 +13,11 @@ const {
 router.use(auth);
 
 router.put('/:id/cancel', idParamValidator, jobController.cancelJob);
-router.get('/:id', idParamValidator, jobController.getJobById);
+router.get('/:id/byworker', idParamValidator, jobController.getJobById);
 // ─── User routes ──────────────────────────────────────────────────
 router.put('/:id/arrive', idParamValidator, jobController.arriveAtLocation);
+router.put('/:id/generateCompleteOTP', idParamValidator, jobController.generateCompleteOTP);
+router.put('/:id/generateConfirmationOTP', idParamValidator, jobController.generateConfirmationOTP);
 router.put('/:id/complete', idParamValidator, completeJobValidator, jobController.completeJob);
 router.put('/:id/rating', idParamValidator, jobController.updateJobRating);
 

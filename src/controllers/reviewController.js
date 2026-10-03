@@ -1,4 +1,11 @@
-const { Review, Booking, Worker, User, Job } = require('../models');
+const {
+  Review,
+  Booking,
+  Worker,
+  User,
+  Job,
+  Service,
+} = require('../models');
 const { BOOKING_STATUS } = require('../utils/constants');
 const { getPagination, getPagingData } = require('../utils/helpers');
 

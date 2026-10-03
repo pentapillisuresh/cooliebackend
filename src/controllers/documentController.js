@@ -1,5 +1,6 @@
-const { Document, Worker } = require('../models');
+const { Document, Worker, User } = require('../models');
 const { DOCUMENT_TYPES } = require('../utils/constants');
+
 
 /**
  * Upload a document (worker) – uses multer middleware

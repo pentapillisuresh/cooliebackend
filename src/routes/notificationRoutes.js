@@ -13,6 +13,6 @@ router.put('/read-all', notificationController.markAllAsRead);
 router.delete('/:id', idParamValidator, validate, notificationController.deleteNotification);
 
 // ─── Admin only ──────────────────────────────────────────────────────
-// router.post('/', isAdmin, notificationController.sendNotification);
+router.post('/', isAdmin, notificationController.sendNotification);
 
 module.exports = router;

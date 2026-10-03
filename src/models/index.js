@@ -23,93 +23,427 @@ const Quiz = require('./Quiz');
 const QuizAttempt = require('./QuizAttempt');
 const QuizQuestion = require('./QuizQuestion');
 
-// User ↔ Worker (one-to-one)
-User.hasOne(Worker, { foreignKey: 'userId', onDelete: 'CASCADE' });
-Worker.belongsTo(User, { foreignKey: 'userId' });
 
-Worker.hasOne(BankDetail, { foreignKey: 'workerId', onDelete: 'CASCADE' });
-BankDetail.belongsTo(Worker, { foreignKey: 'workerId' });
+// ============================================================
+// USER ↔ WORKER
+// One User has one Worker
+// ============================================================
 
-// Category ↔ Service (one-to-many)
-Category.hasMany(Service, { foreignKey: 'categoryId', onDelete: 'CASCADE' });
-Service.belongsTo(Category, { foreignKey: 'categoryId' });
+User.hasOne(Worker, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
 
-// User ↔ Booking (one-to-many)
-User.hasMany(Booking, { foreignKey: 'userId', onDelete: 'CASCADE' });
-Booking.belongsTo(User, { foreignKey: 'userId' });
+Worker.belongsTo(User, {
+  foreignKey: 'userId',
+});
 
-// Service ↔ Booking (one-to-many)
-Service.hasMany(Booking, { foreignKey: 'serviceId' });
-Booking.belongsTo(Service, { foreignKey: 'serviceId' });
 
-// Booking ↔ Job (one-to-one)
-Booking.hasOne(Job, { foreignKey: 'bookingId', onDelete: 'CASCADE' });
-Job.belongsTo(Booking, { foreignKey: 'bookingId' });
+// ============================================================
+// WORKER ↔ BANK DETAIL
+// One Worker has one BankDetail
+// ============================================================
 
-// Worker ↔ Job (one-to-many)
-Worker.hasMany(Job, { foreignKey: 'workerId' });
-Job.belongsTo(Worker, { foreignKey: 'workerId' });
+Worker.hasOne(BankDetail, {
+  foreignKey: 'workerId',
+  onDelete: 'CASCADE',
+});
 
-// Worker ↔ Document (one-to-many)
-Worker.hasMany(Document, { foreignKey: 'workerId', onDelete: 'CASCADE' });
-Document.belongsTo(Worker, { foreignKey: 'workerId' });
+BankDetail.belongsTo(Worker, {
+  foreignKey: 'workerId',
+});
 
-// Booking ↔ Payment (one-to-one)
-Booking.hasOne(Payment, { foreignKey: 'bookingId' });
-Payment.belongsTo(Booking, { foreignKey: 'bookingId' });
 
-User.hasMany(Payment, { foreignKey: 'userId' });
-Payment.belongsTo(User, { foreignKey: 'userId' });
+// ============================================================
+// CATEGORY ↔ SERVICE
+// One Category has many Services
+// ============================================================
 
-// Booking ↔ Review (one-to-one)
-Booking.hasOne(Review, { foreignKey: 'bookingId' });
-Review.belongsTo(Booking, { foreignKey: 'bookingId' });
+Category.hasMany(Service, {
+  foreignKey: 'categoryId',
+  onDelete: 'CASCADE',
+});
 
-// User ↔ Review (one-to-many)
-User.hasMany(Review, { foreignKey: 'userId' });
-Review.belongsTo(User, { foreignKey: 'userId' });
+Service.belongsTo(Category, {
+  foreignKey: 'categoryId',
+});
 
-// Worker ↔ Review (one-to-many)
-Worker.hasMany(Review, { foreignKey: 'workerId' });
-Review.belongsTo(Worker, { foreignKey: 'workerId' });
 
-User.hasMany(Address, { foreignKey: 'userId', onDelete: 'CASCADE' });
-Address.belongsTo(User, { foreignKey: 'userId' });
+// ============================================================
+// USER ↔ BOOKING
+// One User has many Bookings
+// ============================================================
 
-User.hasMany(Ticket, { foreignKey: 'userId', onDelete: 'CASCADE' });
-Ticket.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Booking, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
 
-User.hasMany(TicketReply, { foreignKey: 'userId', onDelete: 'CASCADE' });
-TicketReply.belongsTo(User, { foreignKey: 'userId' });
+Booking.belongsTo(User, {
+  foreignKey: 'userId',
+});
 
-Ticket.hasMany(TicketReply, { foreignKey: 'ticketId', onDelete: 'CASCADE' });
-TicketReply.belongsTo(Ticket, { foreignKey: 'ticketId' });
 
-Booking.hasMany(Ticket, { foreignKey: 'bookingId', onDelete: 'CASCADE' });
-Ticket.belongsTo(Booking, { foreignKey: 'bookingId' });
+// ============================================================
+// SERVICE ↔ BOOKING
+// One Service has many Bookings
+// ============================================================
+
+Service.hasMany(Booking, {
+  foreignKey: 'serviceId',
+});
+
+Booking.belongsTo(Service, {
+  foreignKey: 'serviceId',
+});
+
+
+// ============================================================
+// BOOKING ↔ JOB
+// One Booking has one Job
+// ============================================================
+
+Booking.hasOne(Job, {
+  foreignKey: 'bookingId',
+  onDelete: 'CASCADE',
+});
+
+Job.belongsTo(Booking, {
+  foreignKey: 'bookingId',
+});
+
+
+// ============================================================
+// WORKER ↔ JOB
+// One Worker has many Jobs
+// ============================================================
+
+Worker.hasMany(Job, {
+  foreignKey: 'workerId',
+});
+
+Job.belongsTo(Worker, {
+  foreignKey: 'workerId',
+});
+
+
+// ============================================================
+// WORKER ↔ DOCUMENT
+// One Worker has many Documents
+// ============================================================
+
+Worker.hasMany(Document, {
+  foreignKey: 'workerId',
+  onDelete: 'CASCADE',
+});
+
+Document.belongsTo(Worker, {
+  foreignKey: 'workerId',
+});
+
+
+// ============================================================
+// BOOKING ↔ PAYMENT
+// One Booking has one Payment
+// ============================================================
+
+Booking.hasOne(Payment, {
+  foreignKey: 'bookingId',
+});
+
+Payment.belongsTo(Booking, {
+  foreignKey: 'bookingId',
+});
+
+
+// ============================================================
+// USER ↔ PAYMENT
+// One User has many Payments
+// ============================================================
+
+User.hasMany(Payment, {
+  foreignKey: 'userId',
+});
+
+Payment.belongsTo(User, {
+  foreignKey: 'userId',
+});
+
+
+// ============================================================
+// BOOKING ↔ REVIEW
+// One Booking has one Review
+// ============================================================
+
+Booking.hasOne(Review, {
+  foreignKey: 'bookingId',
+});
+
+Review.belongsTo(Booking, {
+  foreignKey: 'bookingId',
+});
+
+
+// ============================================================
+// USER ↔ REVIEW
+// One User has many Reviews
+// ============================================================
+
+User.hasMany(Review, {
+  foreignKey: 'userId',
+});
+
+Review.belongsTo(User, {
+  foreignKey: 'userId',
+});
+
+
+// ============================================================
+// WORKER ↔ REVIEW
+// One Worker has many Reviews
+// ============================================================
+
+Worker.hasMany(Review, {
+  foreignKey: 'workerId',
+});
+
+Review.belongsTo(Worker, {
+  foreignKey: 'workerId',
+});
+
+
+// ============================================================
+// USER ↔ ADDRESS
+// One User has many Addresses
+// ============================================================
+
+User.hasMany(Address, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
+
+Address.belongsTo(User, {
+  foreignKey: 'userId',
+});
+
+
+// ============================================================
+// USER ↔ TICKET
+// One User has many Tickets
+// ============================================================
+
+User.hasMany(Ticket, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
+
+Ticket.belongsTo(User, {
+  foreignKey: 'userId',
+});
+
+
+// ============================================================
+// USER ↔ TICKET REPLY
+// One User has many Ticket Replies
+// ============================================================
+
+User.hasMany(TicketReply, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE',
+});
+
+TicketReply.belongsTo(User, {
+  foreignKey: 'userId',
+});
+
+
+// ============================================================
+// TICKET ↔ TICKET REPLY
+// One Ticket has many Replies
+// ============================================================
+
+Ticket.hasMany(TicketReply, {
+  foreignKey: 'ticketId',
+  onDelete: 'CASCADE',
+});
+
+TicketReply.belongsTo(Ticket, {
+  foreignKey: 'ticketId',
+});
+
+
+// ============================================================
+// BOOKING ↔ TICKET
+// One Booking has many Tickets
+// ============================================================
+
+Booking.hasMany(Ticket, {
+  foreignKey: 'bookingId',
+  onDelete: 'CASCADE',
+});
+
+Ticket.belongsTo(Booking, {
+  foreignKey: 'bookingId',
+});
+
+
+// ============================================================
+// TRAINING ↔ TRAINING VIDEO
+// One Training has many Videos
+// ============================================================
+
+Training.hasMany(TrainingVideo, {
+  foreignKey: 'trainingId',
+  onDelete: 'CASCADE',
+});
+
+TrainingVideo.belongsTo(Training, {
+  foreignKey: 'trainingId',
+});
+
+
+// ============================================================
+// TRAINING ↔ QUIZ
+// One Training has one Quiz
+// ============================================================
+
+Training.hasOne(Quiz, {
+  foreignKey: 'trainingId',
+  onDelete: 'CASCADE',
+});
+
+Quiz.belongsTo(Training, {
+  foreignKey: 'trainingId',
+});
+
+
+// ============================================================
+// QUIZ ↔ QUIZ QUESTION
+// One Quiz has many Questions
+// ============================================================
+
+Quiz.hasMany(QuizQuestion, {
+  foreignKey: 'quizId',
+  onDelete: 'CASCADE',
+});
+
+QuizQuestion.belongsTo(Quiz, {
+  foreignKey: 'quizId',
+});
+
+
+// ============================================================
+// QUIZ ↔ QUIZ ATTEMPT
+// One Quiz has many Attempts
+// ============================================================
+
+Quiz.hasMany(QuizAttempt, {
+  foreignKey: 'quizId',
+  onDelete: 'CASCADE',
+});
+
+QuizAttempt.belongsTo(Quiz, {
+  foreignKey: 'quizId',
+});
+
+
+// ============================================================
+// WORKER ↔ QUIZ ATTEMPT
+// One Worker has many Quiz Attempts
+// ============================================================
+
+Worker.hasMany(QuizAttempt, {
+  foreignKey: 'workerId',
+  onDelete: 'CASCADE',
+});
+
+QuizAttempt.belongsTo(Worker, {
+  foreignKey: 'workerId',
+});
+
+
+// ============================================================
+// TRAINING ↔ CERTIFICATE
+// One Training has many Certificates
+// ============================================================
+
+Training.hasMany(Certificate, {
+  foreignKey: 'trainingId',
+  onDelete: 'CASCADE',
+});
+
+Certificate.belongsTo(Training, {
+  foreignKey: 'trainingId',
+});
+
+
+// ============================================================
+// WORKER ↔ CERTIFICATE
+// One Worker has many Certificates
+// ============================================================
+
+Worker.hasMany(Certificate, {
+  foreignKey: 'workerId',
+  onDelete: 'CASCADE',
+});
+
+Certificate.belongsTo(Worker, {
+  foreignKey: 'workerId',
+});
+
+
+// ============================================================
+// EXPORT MODELS
+// ============================================================
 
 module.exports = {
   sequelize,
+
+  // Users & Workers
   User,
   Worker,
   BankDetail,
+
+  // Address
+  Address,
+
+  // Services
   Category,
-  Certificate,
   Service,
+
+  // Bookings & Jobs
   Booking,
   Job,
-  Notification,
+
+  // Documents
   Document,
-  FAQ,
+
+  // Payments
+  Payment,
+
+  // Reviews
+  Review,
+
+  // Notifications
+  Notification,
+
+  // Support
   Ticket,
   TicketReply,
-  Payment,
-  Address,
-  Review,
+  FAQ,
+
+  // Promotions
   Promotion,
-  Quiz,
+
+  // Training
   Training,
   TrainingVideo,
+
+  // Quiz
+  Quiz,
+  QuizQuestion,
   QuizAttempt,
-  QuizQuestion
+
+  // Certificates
+  Certificate,
 };

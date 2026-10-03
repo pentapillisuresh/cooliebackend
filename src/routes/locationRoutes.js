@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {auth} = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const axios = require('axios');
 
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -9,8 +9,16 @@ const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 router.post('/reverse-geocode', auth, async (req, res, next) => {
   try {
     const { latitude, longitude } = req.body;
-    if (!latitude || !longitude) {
-      return res.status(400).json({ error: 'Latitude and longitude required' });
+
+    if (
+      latitude == null ||
+      longitude == null ||
+      !Number.isFinite(Number(latitude)) ||
+      !Number.isFinite(Number(longitude))
+    ) {
+      return res.status(400).json({
+        error: 'Valid latitude and longitude required'
+      });
     }
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`;
     const { data } = await axios.get(url);

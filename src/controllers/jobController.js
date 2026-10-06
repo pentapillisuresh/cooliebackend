@@ -24,7 +24,7 @@ exports.getMyJobs = async (req, res, next) => {
     const worker = await getWorkerFromUser(req.user.id);
     const { status, page, limit } = req.query;
     const { offset, limit: lim } = require('../utils/helpers').getPagination(page, limit);
-    console.log("job:::", status)
+
     const where = { workerId: worker.id };
     if (status) where.status = status;
 
@@ -62,7 +62,7 @@ exports.getJobById = async (req, res, next) => {
   try {
     const { id } = req.params;
     // const worker = await getWorkerFromUser(req.user.id);
-
+console.log("JOB::",id)
     const job = await Job.findByPk(id, {
       include: [
         {
@@ -122,7 +122,7 @@ exports.acceptJob = async (req, res, next) => {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     await job.update({
-      status: JOB_STATUS.ARRIVED,
+      status: JOB_STATUS.ACCEPTED,
       startedAt: new Date(),
       confirmationOtp: otp,
       otpExpiry,
@@ -149,13 +149,49 @@ exports.acceptJob = async (req, res, next) => {
   }
 };
 
+exports.onTheWayJob = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const worker = await getWorkerFromUser(req.user.id);
+
+    const job = await Job.findByPk(id);
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Check authorization
+    if (job.workerId !== worker.id) {
+      return res.status(403).json({ error: 'This job is not assigned to you' });
+    }
+
+    // Can only accept if assigned
+    if (job.status !== JOB_STATUS.ACCEPTED) {
+      return res.status(400).json({ error: 'Job is not in accepted state' });
+    }
+
+
+    await job.update({
+      status: JOB_STATUS.ONTHEWAY,
+    });
+
+    // Update booking status to accepted
+    await Booking.update({ status: BOOKING_STATUS.ONTHEWAY }, { where: { id: job.bookingId } });
+
+    res.status(200).json({
+      success: true,
+      data: job,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * Mark job as arrived at location (worker) – for transport/railway: train arrived
  */
 exports.arriveAtLocation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { latitude, longitude } = req.body;
 
     const job = await Job.findByPk(id);
 
@@ -164,8 +200,13 @@ exports.arriveAtLocation = async (req, res, next) => {
         error: 'Job not found',
       });
     }
-
-    const worker = await Worker.findByPk(job.workerId);
+const booking=await Booking.findByPk(job.bookingId);
+if (!booking) {
+  return res.status(404).json({
+    error: 'booking not found',
+  });
+}
+const worker = await Worker.findByPk(job.workerId);
 
     if (!worker) {
       return res.status(404).json({
@@ -182,7 +223,7 @@ exports.arriveAtLocation = async (req, res, next) => {
 
     // Can mark arrived only when assigned or already arrived
     if (
-      ![JOB_STATUS.ASSIGNED, JOB_STATUS.ARRIVED].includes(job.status)
+      ![JOB_STATUS.ASSIGNED, JOB_STATUS.ARRIVED,JOB_STATUS.ONTHEWAY].includes(job.status)
     ) {
       return res.status(400).json({
         error: 'Job cannot be marked as arrived',
@@ -191,13 +232,18 @@ exports.arriveAtLocation = async (req, res, next) => {
 
     await job.update({
       status: JOB_STATUS.ARRIVED,
-      workerLatitude: latitude ?? job.workerLatitude,
-      workerLongitude: longitude ?? job.workerLongitude,
+      workerLatitude: job.workerLatitude,
+      workerLongitude: job.workerLongitude,
     });
 
     await worker.update({
       status: 'working',
     });
+
+    await booking.update({
+      status: BOOKING_STATUS.ARRIVED,
+    });
+
 
     return res.status(200).json({
       success: true,

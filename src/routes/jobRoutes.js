@@ -25,6 +25,7 @@ router.put('/:id/rating', idParamValidator, jobController.updateJobRating);
 router.get('/my', jobController.getMyJobs);
 router.get('/:id/history', idParamValidator, jobController.getJobHistory);
 router.put('/:id/accept', idParamValidator, jobController.acceptJob);
+router.put('/:id/on-the-way', idParamValidator, jobController.onTheWayJob);
 router.post('/:id/confirm-otp', idParamValidator, confirmOTPValidator, jobController.confirmOTP);
 router.post('/:id/photos', idParamValidator, uploadMultiple('photos', 5), jobController.uploadJobPhotos);
 router.put('/:id/location', idParamValidator, jobController.updateLocation);

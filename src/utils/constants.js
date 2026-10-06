@@ -12,8 +12,10 @@ const USER_ROLES = {
   // ─── Booking Status ──────────────────────────────────────────────────
   const BOOKING_STATUS = {
     PENDING: 'pending',
-    ACCEPTED: 'accepted',
     ASSIGNED: 'assigned',
+    ACCEPTED: 'accepted',
+    ONTHEWAY: 'on-the-way',
+    ARRIVED: 'arrived',
     IN_PROGRESS: 'in-progress',
     COMPLETED: 'completed',
     PAYMENT_PENDING: 'payment-pending',
@@ -24,8 +26,10 @@ const USER_ROLES = {
   // ─── Job Status ──────────────────────────────────────────────────────
   const JOB_STATUS = {
     ASSIGNED: 'assigned',
+    ACCEPTED: 'accepted',
+    ONTHEWAY: 'on-the-way',
     ARRIVED: 'arrived',
-    IN_PROGRESS: 'in-progress',
+    IN_PROGRESS: 'in-progress', 
     COMPLETED: 'completed',
     CANCELLED: 'cancelled',
   };

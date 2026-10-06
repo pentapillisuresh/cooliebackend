@@ -167,26 +167,25 @@ const initSocket = (server) => {
         ) {
           return;
         }
+      const booking = await Booking.findByPk(bookingId);
+      if (!booking) return;
+      if (booking.userId !== socket.userId && socket.userRole !== 'admin') return;
+    
+      const job = await Job.findOne({ where: { bookingId } });
+      if (!job) return;
+    
+      await job.update({ userLatitude: latitude, userLongitude: longitude });
+      io.to(`booking-${bookingId}`).emit('user-location', { bookingId,
+        latitude,
+        longitude,
+        timestamp: new Date(),
+      });
 
-        const job = await Job.findOne({ where: { bookingId } });
-        if (!job) return;
+    } catch (error) {
+      console.error('Worker location update error:', error);
+    }
 
-        await job.update({
-          userLatitude: latitude,
-          userLongitude: longitude,
-        });
-
-        io.to(`booking-${bookingId}`).emit('user-location', {
-          bookingId,
-          latitude,
-          longitude,
-          timestamp: new Date(),
-        });
-      } catch (error) {
-        console.error('User location update error:', error);
-      }
     });
-
     // ─── Train tracking ────────────────────────────────────
     socket.on('update-train', async (data) => {
       try {
@@ -300,17 +299,17 @@ const initSocket = (server) => {
 
     // ─── Chat message ──────────────────────────────────────
     socket.on('chat-message', (data) => {
-      const { bookingId, message, senderId, senderType } = data || {};
+      const { bookingId, message } = data || {};
       if (!bookingId || !message) return;
 
       io.to(`booking-${bookingId}`).emit('chat-message', {
         bookingId,
         message,
-        senderId,
-        senderType,
+        senderId: socket.userId,
+        senderType: socket.userRole,
         timestamp: new Date(),
       });
-    });
+        });
 
     // ─── Worker on-the-way location ────────────────────────
     socket.on('worker-location-update', async (data) => {

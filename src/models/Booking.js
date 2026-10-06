@@ -100,8 +100,8 @@ const Booking = sequelize.define('Booking', {
       'pending', 
       'assigned',        // just created
       'accepted',
-      'arrived',
       'on-the-way',      // worker assigned
+      'arrived',
       'in-progress',    // worker started
       'completed',      // work done
       'payment-pending',// completed but unpaid

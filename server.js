@@ -568,9 +568,10 @@ sequelize
     });
     const initSocket = require('./src/socket');
     const io = initSocket(server);
-    global.io = io;
+    app.set('io', io);       // controllers using req.app.get('io')
+    global.io = io;          // anything using global.io
     console.log(`🔌 WebSocket server initialized`);
-  })
+    })
   .catch((err) => {
     console.error('❌ Database connection failed:', err);
   });

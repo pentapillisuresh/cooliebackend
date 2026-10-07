@@ -447,7 +447,7 @@ module.exports = {
   Quiz,
   QuizQuestion,
   QuizAttempt,
-
+  WithdrawalRequest,
   // Certificates
   Certificate,
 };

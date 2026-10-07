@@ -22,6 +22,7 @@ const Promotion = require('./Promotion');
 const Quiz = require('./Quiz');
 const QuizAttempt = require('./QuizAttempt');
 const QuizQuestion = require('./QuizQuestion');
+const WithdrawalRequest = require('./WithdrawalRequest');
 
 
 // ============================================================
@@ -391,6 +392,9 @@ Certificate.belongsTo(Worker, {
   foreignKey: 'workerId',
 });
 
+WithdrawalRequest.belongsTo(Worker, { foreignKey: 'workerId', as: 'Worker' });
+WithdrawalRequest.belongsTo(User,   { foreignKey: 'userId',   as: 'User' });
+Worker.hasMany(WithdrawalRequest,   { foreignKey: 'workerId', as: 'Withdrawals' });
 
 // ============================================================
 // EXPORT MODELS

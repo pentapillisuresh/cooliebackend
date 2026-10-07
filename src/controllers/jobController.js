@@ -117,15 +117,8 @@ exports.acceptJob = async (req, res, next) => {
       return res.status(400).json({ error: 'Job is not in assigned state' });
     }
 
-    // Generate OTP for mutual confirmation
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
     await job.update({
       status: JOB_STATUS.ACCEPTED,
-      startedAt: new Date(),
-      confirmationOtp: otp,
-      otpExpiry,
     });
 
     // Update booking status to accepted
@@ -169,9 +162,16 @@ exports.onTheWayJob = async (req, res, next) => {
       return res.status(400).json({ error: 'Job is not in accepted state' });
     }
 
-
+    // Generate OTP for mutual confirmation
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);    // 24 hours
+    
     await job.update({
       status: JOB_STATUS.ONTHEWAY,
+      startedAt: new Date(),
+      confirmationOtp: otp,
+      otpExpiry,
+
     });
 
     // Update booking status to accepted

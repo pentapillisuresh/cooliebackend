@@ -27,6 +27,7 @@ const userRoutes = require('./routes/userRoutes');
 const promotionRoutes = require('./routes/promotionRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const addressRoutes = require('./routes/addressRoutes');
+const withdrawalRoutes = require('./routes/withdrawalRoutes')
 
 const app = express();
 // ... error handler// Middleware
@@ -59,6 +60,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/location', locationRoutes);
+app.use('/api/withdrawals',withdrawalRoutes );
 
 // Health check
 app.get('/api/health', (req, res) => {

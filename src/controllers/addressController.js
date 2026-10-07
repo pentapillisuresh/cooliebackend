@@ -46,7 +46,7 @@ exports.createAddress = async (req, res, next) => {
       placeId,
       isDefault,
     } = req.body;
-
+console.log("address::",req.body)
 
     // If this is marked default, unset others
     if (isDefault) {

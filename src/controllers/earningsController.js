@@ -2,6 +2,7 @@ const { Worker, Job, Payment, Booking } = require('../models');
 const { getPagination, getPagingData } = require('../utils/helpers');
 const { PAYMENT_STATUS, JOB_STATUS } = require('../utils/constants');
 const { Op, fn, col, literal } = require('sequelize');
+const WithdrawalRequest = require('../models/WithdrawalRequest');
 
 // Helper to get period start
 const startOfDay = (d = new Date()) => {
@@ -50,11 +51,11 @@ exports.getEarningsSummary = async (req, res, next) => {
     const bookingIds = jobs.map(j => j.bookingId).filter(Boolean);
     const payments = bookingIds.length
       ? await Payment.findAll({
-          where: {
-            bookingId: { [Op.in]: bookingIds },
-            status: { [Op.in]: ['paid', 'success'] },
-          },
-        })
+        where: {
+          bookingId: { [Op.in]: bookingIds },
+          status: { [Op.in]: ['paid', 'success'] },
+        },
+      })
       : [];
 
     const paidBookingIds = new Set(payments.map(p => p.bookingId));
@@ -101,13 +102,23 @@ exports.getEarningsSummary = async (req, res, next) => {
       buckets[k].totalEarned = round(buckets[k].totalEarned);
       buckets[k].pendingPayment = round(buckets[k].pendingPayment);
     }
+    const withdrawals = await WithdrawalRequest.findAll({
+      where: { userId: req.user.id, status: 'completed' },
+      order: [['processedAt', 'DESC']],
+    });
+
+    const totalWithdrawAmount = withdrawals.reduce(
+      (sum, w) => sum + (parseFloat(w.amount) || 0),
+      0
+    );
+    const balanceWallet = Number(buckets.allTime.totalEarned) - Number(totalWithdrawAmount)
 
     res.status(200).json({
       success: true,
       data: {
         periods: buckets,
         totalJobs,
-        // Backward-compat flat fields (all-time)
+        balanceWallet,
         totalEarned: buckets.allTime.totalEarned,
         pendingPayment: buckets.allTime.pendingPayment,
         completedJobs: buckets.allTime.completedJobs,
@@ -125,7 +136,7 @@ exports.getEarningsHistory = async (req, res, next) => {
   try {
     const { page, limit, fromDate, toDate } = req.query;
     const { offset, limit: lim } = getPagination(page, limit);
-    console.log("user::",req.user.id)
+    console.log("user::", req.user.id)
     const worker = await Worker.findOne({ where: { userId: req.user.id } });
     if (!worker) {
       return res.status(404).json({ error: 'Worker profile not found' });

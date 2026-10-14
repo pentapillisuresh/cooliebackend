@@ -45,6 +45,7 @@ router.post('/geocode', auth, async (req, res, next) => {
     if (!address) return res.status(400).json({ error: 'Address required' });
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`;
     const { data } = await axios.get(url);
+    console.log("data::",data);
     if (!data.results || data.results.length === 0) {
       return res.status(404).json({ error: 'No coordinates found' });
     }

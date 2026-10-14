@@ -8,7 +8,7 @@ router.use(auth);
 
 // ─── User/Worker ─────────────────────────────────────────────────────
 router.get('/', notificationController.getMyNotifications);
-router.put('/:id/read', idParamValidator, validate, notificationController.markAsRead);
+router.put('/:id/read', idParamValidator, notificationController.markAsRead);
 router.put('/read-all', notificationController.markAllAsRead);
 router.delete('/:id', idParamValidator, validate, notificationController.deleteNotification);
 

@@ -1,3 +1,4 @@
+const { where } = require('sequelize');
 const { Document, Worker, User } = require('../models');
 const { DOCUMENT_TYPES } = require('../utils/constants');
 
@@ -35,6 +36,50 @@ exports.uploadDocument = async (req, res, next) => {
       isVerified: false,
     });
 
+    res.status(201).json({
+      success: true,
+      data: document,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateDocument = async (req, res, next) => {
+  try {
+    const { documentType } = req.body;
+    const { id } = req.params;
+    if (!documentType || !Object.values(DOCUMENT_TYPES).includes(documentType)) {
+      return res.status(400).json({ error: 'Valid document type is required' });
+    }
+
+    // Get worker profile for the authenticated user
+    const worker = await Worker.findOne({ where: { userId: req.user.id } });
+    if (!worker) {
+      return res.status(404).json({ error: 'Worker profile not found' });
+    }
+
+    // req.uploadedFile is set by uploadSingle middleware
+    const file = req.uploadedFile;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const document = await Document.update(
+      {
+        documentType,
+        fileName: file.filename,
+        filePath: file.fullUrl,
+        mimeType: req.file.mimetype,
+        isVerified: false,
+      },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+    
     res.status(201).json({
       success: true,
       data: document,

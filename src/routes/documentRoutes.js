@@ -9,6 +9,7 @@ router.use(auth);
 
 // ─── Worker ──────────────────────────────────────────────────────────
 router.post('/', uploadSingle('file'), documentController.uploadDocument);
+router.put('/:id', uploadSingle('file'), documentController.updateDocument);
 router.get('/my', documentController.getMyDocuments);
 router.get('/:id', idParamValidator, validate, documentController.getDocumentById);
 router.delete('/:id', idParamValidator, validate, documentController.deleteDocument);

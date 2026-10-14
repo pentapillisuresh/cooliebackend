@@ -23,7 +23,8 @@ const Quiz = require('./Quiz');
 const QuizAttempt = require('./QuizAttempt');
 const QuizQuestion = require('./QuizQuestion');
 const WithdrawalRequest = require('./WithdrawalRequest');
-
+const Cart     = require('./Cart');
+const CartItem = require('./CartItem');
 
 // ============================================================
 // USER ↔ WORKER
@@ -396,6 +397,15 @@ WithdrawalRequest.belongsTo(Worker, { foreignKey: 'workerId', as: 'Worker' });
 WithdrawalRequest.belongsTo(User,   { foreignKey: 'userId',   as: 'User' });
 Worker.hasMany(WithdrawalRequest,   { foreignKey: 'workerId', as: 'Withdrawals' });
 
+Cart.belongsTo(User,      { foreignKey: 'userId',      as: 'User' });
+User.hasMany(Cart,        { foreignKey: 'userId',      as: 'Carts' });
+
+Cart.hasMany(CartItem,    { foreignKey: 'cartId',      as: 'Items', onDelete: 'CASCADE' });
+CartItem.belongsTo(Cart,  { foreignKey: 'cartId',      as: 'Cart' });
+
+CartItem.belongsTo(Service, { foreignKey: 'serviceId', as: 'Service' });
+Service.hasMany(CartItem,   { foreignKey: 'serviceId', as: 'CartItems' });
+
 // ============================================================
 // EXPORT MODELS
 // ============================================================
@@ -450,4 +460,6 @@ module.exports = {
   WithdrawalRequest,
   // Certificates
   Certificate,
+  Cart,
+  CartItem,
 };

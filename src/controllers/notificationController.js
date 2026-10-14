@@ -35,15 +35,18 @@ exports.getMyNotifications = async (req, res, next) => {
 exports.markAsRead = async (req, res, next) => {
   try {
     const { id } = req.params;
+console.log("rrr::",req.user.id);
     const notification = await Notification.findOne({
       where: { id, userId: req.user.id },
     });
+
     if (!notification) {
       return res.status(404).json({ error: 'Notification not found' });
     }
     await notification.update({ isRead: true, readAt: new Date() });
     res.status(200).json({ success: true, data: notification });
   } catch (error) {
+    console.log("notify error::",error)
     next(error);
   }
 };

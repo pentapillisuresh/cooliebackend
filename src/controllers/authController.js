@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { User, Worker } = require('../models');
+const { User, Worker, BankDetail } = require('../models');
 const { generateOTP, isOTPExpired } = require('../utils/helpers');
 const { USER_ROLES } = require('../utils/constants');
 

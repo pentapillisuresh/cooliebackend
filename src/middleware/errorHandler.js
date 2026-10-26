@@ -1,7 +1,16 @@
 const multer = require("multer");
 
 const errorHandler = (err, req, res, next) => {
-    console.error('❌ Error:', err.stack);
+console.error('🔥 RAW ERROR:', {
+    name: err.name,
+    message: err.message,
+    sql: err.sql,
+    original: err.original?.sqlMessage,   // ← the real MySQL message
+    code: err.original?.code,
+    errno: err.original?.errno,
+    fields: err.fields,
+    stack:err.stack,
+  });
   
     // Sequelize validation errors
     if (err.name === 'SequelizeValidationError') {

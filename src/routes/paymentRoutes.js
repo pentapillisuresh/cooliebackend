@@ -11,8 +11,8 @@ router.post('/webhook', paymentController.handleWebhook);
 router.use(auth);
 
 // User routes
-router.post('/booking/:bookingId/order', idParamValidator, paymentController.createRazorpayOrder);
-router.post('/booking/:bookingId/verify', idParamValidator, paymentController.verifyPayment);
+router.post('/booking/:cartId/order', idParamValidator, paymentController.createRazorpayOrder);
+router.post('/booking/:cartId/verify', idParamValidator, paymentController.verifyPayment);
 router.get('/booking/:bookingId/status', idParamValidator, paymentController.getPaymentStatus);
 router.get('/history', paymentController.getPaymentHistory);
 router.get('/methods', paymentController.getPaymentMethods);

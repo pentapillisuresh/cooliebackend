@@ -1,6 +1,6 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { Payment, Booking, User,Worker,Job,Service, Category } = require('../models');
+const { Payment, Booking, User, Worker, Job, Service, Category, Cart, sequelize } = require('../models');
 const { PAYMENT_STATUS, BOOKING_STATUS } = require('../utils/constants');
 const { Op } = require('sequelize');
 const { getPagination, getPagingData } = require('../utils/helpers');
@@ -17,52 +17,93 @@ const razorpay = new Razorpay({
  */
 exports.createRazorpayOrder = async (req, res, next) => {
   try {
-    const { bookingId } = req.params;
+    const { cartId } = req.params;
 
+    if (!cartId) {
+      return res.status(400).json({ error: 'cartId is required' });
+    }
     // Find booking
-    const booking = await Booking.findByPk(bookingId);
-    if (!booking) {
-      return res.status(404).json({ error: 'Booking not found' });
+    const cart = await Cart.findByPk(cartId);
+    if (!cartId) {
+      return res.status(404).json({ error: 'Cart not found' });
     }
 
     // Authorization: only the booking owner or admin
-    if (req.user.role !== 'admin' && booking.userId !== req.user.id) {
+    if (req.user.role !== 'admin' && cart.userId !== req.user.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    // 3. Cart must have been converted into bookings
+    if (cart.status !== 'converted') {
+      return res.status(400).json({
+        error: 'Cart has not been checked out yet',
+        status: cart.status,
+      });
+    }
+
     // Check if payment already exists and is successful
-    const existingPayment = await Payment.findOne({ where: { bookingId, status: PAYMENT_STATUS.PAID } });
-    if (existingPayment) {
-      return res.status(400).json({ error: 'Payment already completed for this booking' });
+    const existingPayment = await Payment.findOne({
+      where: { bookingId: null, userId: req.user.id, razorpayOrderId: { [Op.ne]: null } },
+      include: [],
+    });
+    // The above is awkward — better to check by a dedicated field.
+    // Simplest: look for a Payment tied to any booking of this cart.
+    const bookings = await Booking.findAll({
+      where: { cartId: cart.id },
+      attributes: ['id', 'totalAmount', 'paymentStatus', 'scheduledDate', 'scheduledTime'],
+    });
+    if (!bookings.length) {
+      return res.status(400).json({ error: 'No bookings found for this cart' });
+    }
+
+    const paidBooking = bookings.find((b) => b.paymentStatus === 'paid');
+    if (paidBooking) {
+      return res.status(400).json({ error: 'Payment already completed for this cart' });
+    }
+
+    // 5. Total = sum of the (already discounted + GST'd) booking totals
+    const totalAmount = bookings.reduce(
+      (sum, b) => sum + (parseFloat(b.totalAmount) || 0),
+      0,
+    );
+
+    if (totalAmount <= 0) {
+      return res.status(400).json({ error: 'Invalid cart total' });
     }
 
     // Amount in paise (Razorpay expects smallest currency unit)
-    const amountInPaise = Math.round(booking.totalAmount * 100);
+    const amountInPaise = Math.round(totalAmount * 100);
 
     // Create Razorpay order
     const options = {
       amount: amountInPaise,
       currency: 'INR',
-      receipt: `booking_${bookingId}`,
+      receipt: `cart_${cartId}`,
 
       notes: {
-        bookingId: bookingId.toString(),
-        userId: req.user.id.toString(),
+        cartId: String(cart.id),
+        userId: String(req.user.id),
+        bookingIds: bookings.map((b) => b.id).join(','),
       },
     };
 
     const order = await razorpay.orders.create(options);
+    const primaryBooking = bookings[0];
 
     // Create payment record with pending status
     const payment = await Payment.create({
-      bookingId,
-      userId:Number(req.user.id),
-      amount: booking.totalAmount,
+      bookingId: primaryBooking.id,
+      userId: Number(req.user.id),
+      amount: cart.totalAmount,
       currency: 'INR',
       paymentMethod: 'razorpay',
       status: PAYMENT_STATUS.PENDING,
       razorpayOrderId: order.id,
-      gatewayResponse: order,
+      gatewayResponse: {
+        ...order,
+        cartId: cart.id,
+        bookingIds: bookings.map((b) => b.id),
+      },
     });
 
     res.status(201).json({
@@ -73,6 +114,8 @@ exports.createRazorpayOrder = async (req, res, next) => {
         currency: order.currency,
         key: process.env.RAZORPAY_KEY_ID,
         paymentId: payment.id,
+        cartId: cart.id,
+        bookingIds: bookings.map((b) => b.id),
       },
     });
   } catch (error) {
@@ -84,86 +127,190 @@ exports.createRazorpayOrder = async (req, res, next) => {
 /**
  * Verify payment signature after user completes payment
  */
+// src/controllers/paymentController.js
 exports.verifyPayment = async (req, res, next) => {
-  try {
-    const { bookingId } = req.params;
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+  const t = await sequelize.transaction();
 
+  try {
+    const cartId = Number(req.params.cartId);
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body;
+
+    // ── Validation ────────────────────────────────────────────
+    if (!cartId) {
+      await t.rollback();
+      return res.status(400).json({ error: 'cartId is required' });
+    }
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      await t.rollback();
       return res.status(400).json({ error: 'Missing payment verification parameters' });
     }
 
-    // Find the payment record
+    // ── 1. Find the Payment ───────────────────────────────────
+    // NOTE: no lock here. The update below is atomic on its own;
+    // we don't need to hold a row lock just to read.
     const payment = await Payment.findOne({
-      where: { bookingId, razorpayOrderId: razorpay_order_id },
+      where: { razorpayOrderId: razorpay_order_id },
+      transaction: t,
     });
+
     if (!payment) {
+      await t.rollback();
       return res.status(404).json({ error: 'Payment record not found' });
     }
 
-    // Verify signature
-    const body = razorpay_order_id + '|' + razorpay_payment_id;
+    // ── 2. Idempotency — already verified? return success ─────
+    if (payment.status === PAYMENT_STATUS.PAID) {
+      await t.rollback(); // nothing to do, release the connection
+      return res.status(200).json({
+        success: true,
+        message: 'Payment already verified',
+        data: {
+          paymentId: payment.id,
+          status: PAYMENT_STATUS.PAID,
+          cartId,
+          alreadyVerified: true,
+        },
+      });
+    }
+
+    // ── 3. Verify signature ───────────────────────────────────
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(body.toString())
+      .update(body)
       .digest('hex');
 
-    // const isSignatureValid = expectedSignature === razorpay_signature;
-    const isSignatureValid =
-    expectedSignature.length === razorpay_signature.length &&
-    crypto.timingSafeEqual(
-      Buffer.from(expectedSignature),
-      Buffer.from(razorpay_signature)
-    );
-  
-    if (!isSignatureValid) {
-      // Update payment status to failed
-      await payment.update({
-        status: PAYMENT_STATUS.FAILED,
-        razorpayPaymentId: razorpay_payment_id,
-        razorpaySignature: razorpay_signature,
-        gatewayResponse: { ...payment.gatewayResponse, razorpay_payment_id, razorpay_signature },
-      });
+    const signatureValid =
+      expectedSignature.length === razorpay_signature.length &&
+      crypto.timingSafeEqual(
+        Buffer.from(expectedSignature),
+        Buffer.from(razorpay_signature),
+      );
+
+    const mergeGatewayResponse = (existing, additions) => {
+      let base = {};
+      if (existing) {
+        if (typeof existing === 'string') {
+          try { base = JSON.parse(existing); } catch { base = {}; }
+        } else {
+          base = existing;
+        }
+      }
+      return { ...base, ...additions };
+    };
+
+    if (!signatureValid) {
+      await payment.update(
+        {
+          status: PAYMENT_STATUS.FAILED,
+          razorpayPaymentId: razorpay_payment_id,
+          razorpaySignature: razorpay_signature,
+          gatewayResponse: mergeGatewayResponse(payment.gatewayResponse, {
+            razorpay_payment_id,
+            razorpay_signature,
+            failureReason: 'Signature mismatch',
+          }),
+        },
+        { transaction: t },
+      );
+      await t.commit();
       return res.status(400).json({ error: 'Invalid payment signature' });
     }
 
-    // Payment successful
-    await payment.update({
-      status: PAYMENT_STATUS.PAID,
-      razorpayPaymentId: razorpay_payment_id,
-      razorpaySignature: razorpay_signature,
-      paidAt: new Date(),
-      transactionId: razorpay_payment_id,
-      gatewayResponse: { ...payment.gatewayResponse, razorpay_payment_id, razorpay_signature },
+    // ── 4. Mark the payment as paid ───────────────────────────
+    await payment.update(
+      {
+        status: PAYMENT_STATUS.PAID,
+        razorpayPaymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+        paidAt: new Date(),
+        transactionId: razorpay_payment_id,
+        gatewayResponse: mergeGatewayResponse(payment.gatewayResponse, {
+          razorpay_payment_id,
+          razorpay_signature,
+          verifiedAt: new Date().toISOString(),
+        }),
+      },
+      { transaction: t },
+    );
+
+    // ── 5. Find every booking tied to this cart ───────────────
+    let bookings = await Booking.findAll({
+      where: { cartId },
+      transaction: t,
     });
 
-    
-    const booking = await Booking.findByPk(bookingId);
-    if (booking) {
-      
-    const location = { latitude:booking.latitude, longitude:booking.longitude }
-    try {
-        const service = await Service.findByPk(booking.serviceId, { include: [{ model: Category }] });
-
-        const job = await assignWorkerToBooking(booking, service,location);
-        if (job) {
-          console.log(`✅ Worker ${job.workerId} auto-assigned to booking ${booking.id}`);
-        } else {
-          console.log(`⚠️ No available worker for booking ${booking.id}`);
-        }
-      } catch (error) {
-        console.error('Auto-assignment error:', error);
-      }finally{
-        await booking.update({  paymentStatus: PAYMENT_STATUS.PAID });
-      }
+    if (!bookings.length && payment.bookingId) {
+      const fallback = await Booking.findByPk(payment.bookingId, { transaction: t });
+      if (fallback) bookings = [fallback];
     }
- 
-    res.status(200).json({
+
+    if (bookings.length) {
+      await Booking.update(
+        {
+          paymentStatus: PAYMENT_STATUS.PAID,
+          status: BOOKING_STATUS.PAYMENT_PAID || 'payment-paid',
+        },
+        {
+          where: { id: { [Op.in]: bookings.map((b) => b.id) } },
+          transaction: t,
+        },
+      );
+    }
+
+    // ── 6. Commit BEFORE worker assignment ────────────────────
+    await t.commit();
+
+    // ── 7. Fire-and-forget assignment ─────────────────────────
+    if (bookings.length) {
+      const assignTasks = bookings.map(async (b) => {
+        try {
+          const service = await Service.findByPk(b.serviceId, {
+            include: [{ model: Category }],
+          });
+          const location = { latitude: b.latitude, longitude: b.longitude };
+          const job = await assignWorkerToBooking(b, service, location);
+          if (job) {
+            // ✅ Worker assigned — flip the booking status now
+            await b.update({
+              status: BOOKING_STATUS.ASSIGNED || 'assigned',
+            });
+            console.log(`✅ Worker ${job.workerId} assigned to booking ${b.id}`);
+          } else {
+            console.log(`⚠️ No available worker for booking ${b.id}`);
+          }
+        } catch (err) {
+          console.error(`Auto-assignment error for booking ${b.id}:`, err);
+        }
+      });
+      Promise.allSettled(assignTasks).catch(() => {});
+    }
+
+    return res.status(200).json({
       success: true,
       message: 'Payment verified successfully',
-      data: { paymentId: payment.id, status: PAYMENT_STATUS.PAID },
+      data: {
+        paymentId: payment.id,
+        status: PAYMENT_STATUS.PAID,
+        cartId,
+        bookingIds: bookings.map((b) => b.id),
+      },
     });
   } catch (error) {
+    try { await t.rollback(); } catch (_) {}
+
+    // ── Handle lock timeout with a single retry ───────────────
+    if (error?.original?.code === 'ER_LOCK_WAIT_TIMEOUT') {
+      console.warn('⚠️ Lock timeout on verify — retrying once after 500ms');
+      await new Promise((r) => setTimeout(r, 500));
+      return exports.verifyPayment(req, res, next);
+    }
+
+    console.error('verifyPayment error:', error);
     next(error);
   }
 };

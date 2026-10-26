@@ -35,7 +35,7 @@ const CartItem = sequelize.define('CartItem', {
   lineTotal: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   // Optional per-item scheduled datetime (overrides cart-level)
   scheduledDate: { type: DataTypes.DATEONLY, allowNull: true },
-  scheduledTime: { type: DataTypes.TIME, allowNull: true },  address: {
+  scheduledTime: { type: DataTypes.TIME, allowNull: true }, address: {
     type: DataTypes.TEXT,
     allowNull: false,
   },
@@ -44,16 +44,11 @@ const CartItem = sequelize.define('CartItem', {
     allowNull: true,
     references: { model: 'Addresses', key: 'id' },
     onDelete: 'SET NULL',
-    comment: 'Optional: reference to saved address',
   },
-  latitude: {
-    type: DataTypes.DOUBLE,
-    allowNull: true,
-  },
-  longitude: {
-    type: DataTypes.DOUBLE,
-    allowNull: true,
-  },
+  address: { type: DataTypes.TEXT, allowNull: true },
+  latitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
+  longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
+
   specialInstructions: { type: DataTypes.TEXT, allowNull: true },
 }, {
   timestamps: true,

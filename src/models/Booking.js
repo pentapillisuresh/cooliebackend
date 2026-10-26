@@ -24,6 +24,12 @@ const Booking = sequelize.define('Booking', {
       key: 'id',
     },
   },
+  cartId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,          // legacy bookings won't have it
+    references: { model: 'Carts', key: 'id' },
+    onDelete: 'SET NULL',
+  },
   // For transport/railway: train details, luggage weight, etc.
   // For general: address, time slot, manpower count, etc.
   details: {
@@ -98,6 +104,7 @@ const Booking = sequelize.define('Booking', {
   status: {
     type: DataTypes.ENUM(
       'pending', 
+      'payment-paid',
       'assigned',        // just created
       'accepted',
       'on-the-way',      // worker assigned

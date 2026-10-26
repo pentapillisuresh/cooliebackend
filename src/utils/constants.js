@@ -12,6 +12,7 @@ const USER_ROLES = {
   // ─── Booking Status ──────────────────────────────────────────────────
   const BOOKING_STATUS = {
     PENDING: 'pending',
+    PAYMENT_PAID: 'payment-paid',
     ASSIGNED: 'assigned',
     ACCEPTED: 'accepted',
     ONTHEWAY: 'on-the-way',

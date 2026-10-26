@@ -23,7 +23,7 @@ const Service = sequelize.define('Service', {
   slug: {
     type: DataTypes.STRING(200),
     allowNull: false,
-    // unique: true,
+    unique: true,
   },
   description: {
     type: DataTypes.TEXT,
@@ -52,9 +52,20 @@ const Service = sequelize.define('Service', {
     allowNull: true,
     comment: 'Flexible fields for service-specific data (e.g., train required, weight limits)',
   },
+  pricingUnit: {                // ✅ ADDED (optional)
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: 'Display label, e.g. "Per sq ft", "Per bathroom"',
+  },
 }, {
   timestamps: true,
   paranoid: true,
+  indexes: [                    // ✅ ADDED
+    { fields: ['slug'], unique: true },
+    { fields: ['categoryId'] },
+    { fields: ['isActive'] },
+    { fields: ['categoryId', 'isActive'] },
+  ],
 });
 
 module.exports = Service;

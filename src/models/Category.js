@@ -15,7 +15,7 @@ const Category = sequelize.define('Category', {
   slug: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    // unique: true,
+    unique: true,
   },
   icon: {
     type: DataTypes.STRING(255),
@@ -40,6 +40,10 @@ const Category = sequelize.define('Category', {
 }, {
   timestamps: true,
   paranoid: true, // soft delete
+  indexes: [                     // ✅ ADDED
+    { fields: ['slug'], unique: true },
+    { fields: ['isActive', 'sortOrder'] },
+  ],
 });
 
 module.exports = Category;

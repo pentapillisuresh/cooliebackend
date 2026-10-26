@@ -406,6 +406,8 @@ CartItem.belongsTo(Cart,  { foreignKey: 'cartId',      as: 'Cart' });
 CartItem.belongsTo(Service, { foreignKey: 'serviceId', as: 'Service' });
 Service.hasMany(CartItem,   { foreignKey: 'serviceId', as: 'CartItems' });
 
+Booking.belongsTo(Cart, { foreignKey: 'cartId', as: 'Cart' });
+Cart.hasMany(Booking,    { foreignKey: 'cartId', as: 'Bookings' });
 // ============================================================
 // EXPORT MODELS
 // ============================================================

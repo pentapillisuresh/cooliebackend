@@ -8,6 +8,14 @@ const createDefaultMetadata = require('./src/utils/createDefaultMetadata');
 
 const PORT = process.env.PORT || 5000;
 
+const workerGenderField = () => ({
+  key: 'workerGender',
+  label: 'Worker Gender',
+  type: 'select',
+  required: true,
+  options: ['Male', 'Female'],
+});
+
 // ─── Seed Data ─────────────────────────────────────────────────────
 const seedDatabase = async () => {
   try {
@@ -642,36 +650,72 @@ const seedDatabase = async () => {
       // ═══════════════════════════════════════════════════════════
       // CONSTRUCTION & SITE MATERIALS
       // ═══════════════════════════════════════════════════════════
-      'material-shifting': createDefaultMetadata(
-        [
-          { key: 'materialType', label: 'Material Type', type: 'select', required: true, options: ['Cement', 'Bricks', 'Sand', 'Steel', 'Wood', 'Tiles'] },
-          { key: 'workerHours', label: 'Estimated Worker-Hours', type: 'number', required: true },
-          { key: 'sourceFloor', label: 'Source Floor', type: 'text' },
-          { key: 'destinationFloor', label: 'Destination Floor', type: 'text' },
-          { key: 'requiresLift', label: 'Requires Lift/Elevator', type: 'boolean' },
-        ],
-        { type: 'per_hour', rate: 350, hoursField: 'workerHours' },
-      ),
+// ─── CONSTRUCTION & SITE MATERIALS ───
 
-      'masonry-work': createDefaultMetadata(
-        [
-          { key: 'workType', label: 'Work Type', type: 'select', required: true, options: ['Brickwork', 'Plastering', 'Tiling', 'Foundation', 'Retaining Wall'] },
-          { key: 'area', label: 'Area (sq ft)', type: 'number', required: true },
-          { key: 'material', label: 'Material', type: 'select', options: ['Brick', 'Concrete Block', 'Stone', 'Tile', 'Marble'] },
-          { key: 'includesPlastering', label: 'Includes Plastering', type: 'boolean' },
-        ],
-        { type: 'per_sqft', rate: 35, areaField: 'area' },
-      ),
+'material-shifting': createDefaultMetadata(
+  [
+    workerGenderField(),
+    { key: 'materialType', label: 'Material Type', type: 'select', required: true, options: ['Cement', 'Bricks', 'Sand', 'Steel', 'Wood', 'Tiles'] },
+    { key: 'billingBasis', label: 'Billing Basis', type: 'select', required: true, options: ['Hourly', 'Daily'] },
+    { key: 'workerHours', label: 'No. of Hours', type: 'number', placeholder: 'Required if billing hourly' },
+    { key: 'workerDays', label: 'No. of Days', type: 'number', placeholder: 'Required if billing daily' },
+    { key: 'sourceFloor', label: 'Source Floor', type: 'text' },
+    { key: 'destinationFloor', label: 'Destination Floor', type: 'text' },
+    { key: 'requiresLift', label: 'Requires Lift/Elevator', type: 'boolean' },
+  ],
+  {
+    type: 'conditional',
+    field: 'billingBasis',
+    cases: {
+      Hourly: { type: 'hourly_gender', rates: { male: 150, female: 125 }, hoursField: 'workerHours' },
+      Daily:  { type: 'daily_gender',  rates: { male: 1500, female: 1000 }, daysField: 'workerDays' },
+    },
+  },
+),
 
-      demolition: createDefaultMetadata(
-        [
-          { key: 'structureType', label: 'Structure Type', type: 'select', required: true, options: ['Wall', 'Ceiling', 'Partition', 'Balcony', 'Floor', 'Foundation'] },
-          { key: 'area', label: 'Area (sq ft)', type: 'number', required: true },
-          { key: 'includesDebrisRemoval', label: 'Include Debris Removal', type: 'boolean' },
-          { key: 'includesSafetyMeasures', label: 'Include Safety Measures', type: 'boolean' },
-        ],
-        { type: 'per_sqft', rate: 25, areaField: 'area' },
-      ),
+'masonry-work': createDefaultMetadata(
+  [
+    workerGenderField(),
+    { key: 'workType', label: 'Work Type', type: 'select', required: true, options: ['Brickwork', 'Plastering', 'Tiling', 'Foundation', 'Retaining Wall'] },
+    { key: 'billingBasis', label: 'Billing Basis', type: 'select', required: true, options: ['Area (sq ft)', 'Hourly', 'Daily'] },
+    { key: 'area', label: 'Area (sq ft)', type: 'number', placeholder: 'Required if billing by area' },
+    { key: 'workerHours', label: 'No. of Hours', type: 'number', placeholder: 'Required if billing hourly' },
+    { key: 'workerDays', label: 'No. of Days', type: 'number', placeholder: 'Required if billing daily' },
+    { key: 'material', label: 'Material', type: 'select', options: ['Brick', 'Concrete Block', 'Stone', 'Tile', 'Marble'] },
+    { key: 'includesPlastering', label: 'Includes Plastering', type: 'boolean', price: 500 },
+  ],
+  {
+    type: 'conditional',
+    field: 'billingBasis',
+    cases: {
+      'Area (sq ft)': { type: 'per_sqft_gender', rates: { male: 35, female: 30 }, areaField: 'area' },
+      Hourly:         { type: 'hourly_gender',   rates: { male: 180, female: 150 }, hoursField: 'workerHours' },
+      Daily:          { type: 'daily_gender',    rates: { male: 1200, female: 1000 }, daysField: 'workerDays' },
+    },
+  },
+),
+
+demolition: createDefaultMetadata(
+  [
+    workerGenderField(),
+    { key: 'structureType', label: 'Structure Type', type: 'select', required: true, options: ['Wall', 'Ceiling', 'Partition', 'Balcony', 'Floor', 'Foundation'] },
+    { key: 'billingBasis', label: 'Billing Basis', type: 'select', required: true, options: ['Area (sq ft)', 'Hourly', 'Daily'] },
+    { key: 'area', label: 'Area (sq ft)', type: 'number', placeholder: 'Required if billing by area' },
+    { key: 'workerHours', label: 'No. of Hours', type: 'number', placeholder: 'Required if billing hourly' },
+    { key: 'workerDays', label: 'No. of Days', type: 'number', placeholder: 'Required if billing daily' },
+    { key: 'includesDebrisRemoval', label: 'Include Debris Removal', type: 'boolean', price: 400 },
+    { key: 'includesSafetyMeasures', label: 'Include Safety Measures', type: 'boolean', price: 250 },
+  ],
+  {
+    type: 'conditional',
+    field: 'billingBasis',
+    cases: {
+      'Area (sq ft)': { type: 'per_sqft_gender', rates: { male: 25, female: 22 }, areaField: 'area' },
+      Hourly:         { type: 'hourly_gender',   rates: { male: 200, female: 170 }, hoursField: 'workerHours' },
+      Daily:          { type: 'daily_gender',    rates: { male: 1300, female: 1100 }, daysField: 'workerDays' },
+    },
+  },
+),
 
       // ═══════════════════════════════════════════════════════════
       // DOMESTIC MOVING & SHIFTING

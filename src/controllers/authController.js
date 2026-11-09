@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { User, Worker, BankDetail } = require('../models');
 const { generateOTP, isOTPExpired } = require('../utils/helpers');
 const { USER_ROLES } = require('../utils/constants');
+const { sendSMS } = require('../utils/sms');
 
 // ─── Helper: Generate JWT token ─────────────────────────────────────
 const generateToken = (user) => {
@@ -16,23 +17,23 @@ const generateToken = (user) => {
 // ─── Register a new user (with optional worker role) ─────────────────
 exports.register = async (req, res, next) => {
   try {
-    const { mobile, name, email, password, role, profession, experience, description,profileImage } = req.body;
+    const { mobile, name, email, password, role, profession, experience, description, profileImage } = req.body;
 
     // Check if user already exists
     const existing = await User.findOne({ where: { mobile } });
     if (existing) {
       return res.status(400).json({ error: 'User with this mobile number already exists' });
     }
-    const hashedPassword='';
+    const hashedPassword = '';
     if (password) {
       // Hash password
-       hashedPassword = await bcrypt.hash(password, 10);
+      hashedPassword = await bcrypt.hash(password, 10);
     }
 
     // Create user
     const user = await User.create({
       mobile,
-      name,email,
+      name, email,
       password: hashedPassword,
       role: role || USER_ROLES.USER,
       isVerified: false,
@@ -134,7 +135,7 @@ exports.sendOTP = async (req, res, next) => {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Find or create user
-    let user = await User.findOne({ where: { mobile} });
+    let user = await User.findOne({ where: { mobile } });
     if (!user) {
       // Create temporary user for OTP login flow
       user = await User.create({
@@ -158,6 +159,23 @@ exports.sendOTP = async (req, res, next) => {
         message: 'OTP sent',
         otp,
         userId: user.id,
+      });
+    }
+    // Send OTP through SMS gateway
+    try {
+      const smsResponse = await sendSMS(user.mobile, otp);
+
+      console.log('SMS Gateway Response:', smsResponse);
+
+    } catch (smsError) {
+      console.error(
+        'SMS Error:',
+        smsError.response?.data || smsError.message
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP. Please try again.'
       });
     }
 
@@ -184,7 +202,7 @@ exports.sendWorkerOTP = async (req, res, next) => {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Find or create user
-    let user = await User.findOne({ where: { mobile,role:"worker" } });
+    let user = await User.findOne({ where: { mobile, role: "worker" } });
     if (!user) {
       // Create temporary user for OTP login flow
       return res.status(400).json({ error: 'Service Partner not found please register ' });
@@ -202,6 +220,23 @@ exports.sendWorkerOTP = async (req, res, next) => {
         userId: user.id,
       });
     }
+    // Send OTP through SMS gateway
+    try {
+      const smsResponse = await sendSMS(user.mobile, otp);
+
+      console.log('SMS Gateway Response:', smsResponse);
+
+    } catch (smsError) {
+      console.error(
+        'SMS Error:',
+        smsError.response?.data || smsError.message
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP. Please try again.'
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -216,7 +251,7 @@ exports.sendWorkerOTP = async (req, res, next) => {
 // ─── Verify OTP ──────────────────────────────────────────────────────
 exports.verifyOTP = async (req, res, next) => {
   try {
-    const { mobile, otp, role} = req.body;
+    const { mobile, otp, role } = req.body;
 
     if (!mobile || !otp) {
       return res.status(400).json({ error: 'Mobile and OTP are required' });
@@ -244,7 +279,7 @@ exports.verifyOTP = async (req, res, next) => {
     // If registering as worker, create worker profile
     let worker = null;
     if (role === USER_ROLES.WORKER) {
-      worker=await Worker.findOne({where:{userId:user.id}})
+      worker = await Worker.findOne({ where: { userId: user.id } })
     }
 
     // Generate token

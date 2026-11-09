@@ -6,3 +6,5 @@ node_modules/
 *coolie-firebase-service-account.json
 *coolie-workers-firebase-adminsdk-fbsvc-df03e662eb.json
 *service-account.json
+*package.json
+*package-lock.json

@@ -123,7 +123,7 @@ exports.login = async (req, res, next) => {
 
 // ─── Send OTP for verification / login ───────────────────────────────
 exports.sendOTP = async (req, res, next) => {
-
+  console.log('SMS Gateway Response:');
   try {
     const { mobile, role } = req.body;
     if (!mobile) {
@@ -151,16 +151,16 @@ exports.sendOTP = async (req, res, next) => {
       await user.update({ otp, otpExpiry });
     }
 
-    // In production, send SMS via gateway
-    // For development, return OTP in response
-    if (process.env.NODE_ENV === 'development') {
-      return res.status(200).json({
-        success: true,
-        message: 'OTP sent',
-        otp,
-        userId: user.id,
-      });
-    }
+    // // In production, send SMS via gateway
+    // // For development, return OTP in response
+    // if (process.env.NODE_ENV === 'development') {
+    //   return res.status(200).json({
+    //     success: true,
+    //     message: 'OTP sent',
+    //     otp,
+    //     userId: user.id,
+    //   });
+    // }
     // Send OTP through SMS gateway
     try {
       const smsResponse = await sendSMS(user.mobile, otp);

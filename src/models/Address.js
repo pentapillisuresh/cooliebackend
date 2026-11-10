@@ -19,7 +19,7 @@ const Address = sequelize.define('Address', {
     comment: 'e.g., Home, Office, Other',
   },
   address: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.STRING,
     allowNull: true,
   },
   country: {

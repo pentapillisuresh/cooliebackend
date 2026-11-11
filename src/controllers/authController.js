@@ -160,6 +160,12 @@ exports.sendOTP = async (req, res, next) => {
         otpExpiry,
       });
     } else {
+      if (!user.isActive) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account is inactive. Please contact support.'
+        });
+      }
       await user.update({
         otp,
         otpExpiry
@@ -195,6 +201,7 @@ exports.sendOTP = async (req, res, next) => {
   }
 };
 
+
 exports.sendWorkerOTP = async (req, res, next) => {
   try {
     const { mobile } = req.body;
@@ -225,7 +232,12 @@ exports.sendWorkerOTP = async (req, res, next) => {
         error: 'Service Partner not found please register'
       });
     }
-
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account is inactive. Please contact support.'
+      });
+    }
     await user.update({
       otp,
       otpExpiry
@@ -346,6 +358,49 @@ exports.resendOTP = async (req, res, next) => {
     }
 
     res.status(200).json({ success: true, message: 'OTP resent successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+exports.inactiveUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already inactive'
+      });
+    }
+
+    await user.update({
+      isActive: false,
+      fcmToken: null
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'User account deactivated successfully'
+    });
+
   } catch (error) {
     next(error);
   }

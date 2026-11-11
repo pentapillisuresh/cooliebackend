@@ -122,22 +122,34 @@ exports.login = async (req, res, next) => {
 };
 
 // ─── Send OTP for verification / login ───────────────────────────────
+
+const TEST_MOBILE = '9999999999';
+const TEST_OTP = '333333';
+
 exports.sendOTP = async (req, res, next) => {
-  console.log('SMS Gateway Response:');
   try {
     const { mobile, role } = req.body;
+
     if (!mobile) {
-      return res.status(400).json({ error: 'Mobile number is required' });
+      return res.status(400).json({
+        error: 'Mobile number is required'
+      });
     }
 
-    // Generate OTP
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // Check Google Play Console test credentials
+    const isTestUser = String(mobile) === TEST_MOBILE;
+
+    // Generate fixed OTP for test user, random OTP for others
+    const otp = isTestUser ? TEST_OTP : generateOTP();
+
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
     // Find or create user
-    let user = await User.findOne({ where: { mobile } });
+    let user = await User.findOne({
+      where: { mobile }
+    });
+
     if (!user) {
-      // Create temporary user for OTP login flow
       user = await User.create({
         mobile,
         name: 'User',
@@ -148,101 +160,101 @@ exports.sendOTP = async (req, res, next) => {
         otpExpiry,
       });
     } else {
-      await user.update({ otp, otpExpiry });
-    }
-
-    // // In production, send SMS via gateway
-    // // For development, return OTP in response
-    // if (process.env.NODE_ENV === 'development') {
-    //   return res.status(200).json({
-    //     success: true,
-    //     message: 'OTP sent',
-    //     otp,
-    //     userId: user.id,
-    //   });
-    // }
-    // Send OTP through SMS gateway
-    try {
-      const smsResponse = await sendSMS(user.mobile, otp);
-
-      console.log('SMS Gateway Response:', smsResponse);
-
-    } catch (smsError) {
-      console.error(
-        'SMS Error:',
-        smsError.response?.data || smsError.message
-      );
-
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send OTP. Please try again.'
+      await user.update({
+        otp,
+        otpExpiry
       });
     }
 
-    res.status(200).json({
+    // Skip SMS for Google Play Console test account
+    if (!isTestUser) {
+      try {
+        const smsResponse = await sendSMS(user.mobile, otp);
+        console.log('SMS Gateway Response:', smsResponse);
+      } catch (smsError) {
+        console.error(
+          'SMS Error:',
+          smsError.response?.data || smsError.message
+        );
+
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send OTP. Please try again.'
+        });
+      }
+    }
+
+    return res.status(200).json({
       success: true,
       message: 'OTP sent successfully',
       userId: user.id,
     });
+
   } catch (error) {
     next(error);
   }
 };
 
 exports.sendWorkerOTP = async (req, res, next) => {
-
   try {
-    const { mobile, role } = req.body;
+    const { mobile } = req.body;
+
     if (!mobile) {
-      return res.status(400).json({ error: 'Mobile number is required' });
+      return res.status(400).json({
+        error: 'Mobile number is required'
+      });
     }
 
-    // Generate OTP
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const isTestUser = String(mobile) === TEST_MOBILE;
 
-    // Find or create user
-    let user = await User.findOne({ where: { mobile, role: "worker" } });
+    // Fixed OTP for test account
+    const otp = isTestUser ? TEST_OTP : generateOTP();
+
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Find worker
+    let user = await User.findOne({
+      where: {
+        mobile,
+        role: 'worker'
+      }
+    });
+
     if (!user) {
-      // Create temporary user for OTP login flow
-      return res.status(400).json({ error: 'Service Partner not found please register ' });
-    } else {
-      await user.update({ otp, otpExpiry });
-    }
-
-    // In production, send SMS via gateway
-    // For development, return OTP in response
-    if (process.env.NODE_ENV === 'development') {
-      return res.status(200).json({
-        success: true,
-        message: 'OTP sent',
-        otp,
-        userId: user.id,
-      });
-    }
-    // Send OTP through SMS gateway
-    try {
-      const smsResponse = await sendSMS(user.mobile, otp);
-
-      console.log('SMS Gateway Response:', smsResponse);
-
-    } catch (smsError) {
-      console.error(
-        'SMS Error:',
-        smsError.response?.data || smsError.message
-      );
-
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send OTP. Please try again.'
+      return res.status(400).json({
+        error: 'Service Partner not found please register'
       });
     }
 
-    res.status(200).json({
+    await user.update({
+      otp,
+      otpExpiry
+    });
+
+    // Skip SMS for test account
+    if (!isTestUser) {
+      try {
+        const smsResponse = await sendSMS(user.mobile, otp);
+        console.log('SMS Gateway Response:', smsResponse);
+      } catch (smsError) {
+        console.error(
+          'SMS Error:',
+          smsError.response?.data || smsError.message
+        );
+
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send OTP. Please try again.'
+        });
+      }
+    }
+
+    return res.status(200).json({
       success: true,
       message: 'OTP sent successfully',
       userId: user.id,
     });
+
   } catch (error) {
     next(error);
   }

@@ -15,7 +15,7 @@ router.get('/', auth, isAdmin, userController.getAllUsers);
 router.get('/:id', auth, isAdmin, userController.getUserById);
 router.put('/:id', auth, isAdmin, userController.updateUser);
 router.delete('/:id', auth, isAdmin, userController.deleteUser);
-router.put('/inactive/:userId', userController.inactiveUser);
+// router.put('/inactive/:userId', userController.inactiveUser);
 router.post('/test-notification', async (req, res) => {
   try {
     const { token } = req.body;

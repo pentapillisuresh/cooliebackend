@@ -29,6 +29,7 @@ const locationRoutes = require('./routes/locationRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const withdrawalRoutes = require('./routes/withdrawalRoutes')
 const cartRoutes = require('./routes/cartRoutes')
+const deleteRoute = require('./routes/accountDeletionRoutes');
 
 const app = express();
 // ... error handler// Middleware
@@ -63,6 +64,7 @@ app.use('/api/promotions', promotionRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/withdrawals',withdrawalRoutes );
 app.use('/api/cart', cartRoutes);
+app.use('/api/account/delete', deleteRoute);
 
 // Health check
 app.get('/api/health', (req, res) => {

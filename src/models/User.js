@@ -60,6 +60,14 @@ const User = sequelize.define('User', {
     allowNull: true,
   },
   // Additional fields as needed
+  deletionOtp: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+  },
+  deletionOtpExpiresAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  }
 });
 
 module.exports = User;

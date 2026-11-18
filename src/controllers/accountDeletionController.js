@@ -22,7 +22,7 @@ const generateOtp = () =>
 
 const sendDeletionSms = async (phoneDigits, otp) => {
   const url = 'http://whatsapp.esotericprojects.com/api/sendmsg.php';
-  const text = `Your Coolie account deletion OTP is ${otp}. It is valid for 5 minutes. Do not share this OTP with anyone.`;
+  const text = `Your Coolie account deletion OTP is ${otp}. It is valid for 5 minutes. Do not share this OTP with anyone. Visit https : https://shahillfacilityservices.com`;
 
   try {
     const response = await axios.get(url, {
@@ -163,18 +163,12 @@ exports.verifyOtp = async (req, res, next) => {
       });
     }
 
-    if ((user.deletionOtpAttempts || 0) >= MAX_OTP_ATTEMPTS) {
       await user.update({
         deletionOtp: null,
         deletionOtpExpiresAt: null,
         deletionOtpAttempts: 0,
       });
-      return res.status(429).json({
-        success: false,
-        message: 'Too many incorrect attempts. Please request a new OTP.',
-      });
-    }
-
+      
     if (hashOtp(otp) !== user.deletionOtp) {
       await user.increment('deletionOtpAttempts');
       return res.status(400).json({

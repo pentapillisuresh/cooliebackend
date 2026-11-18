@@ -7,6 +7,11 @@ const Service = sequelize.define('Service', {
     autoIncrement: true,
     primaryKey: true,
   },
+  position: {
+    type: DataTypes.INTEGER,
+    allowNull:true,
+    defaultValue:0
+  },
   categoryId: {
     type: DataTypes.INTEGER,
     allowNull: false,

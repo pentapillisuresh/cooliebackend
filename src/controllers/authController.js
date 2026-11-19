@@ -124,6 +124,7 @@ exports.login = async (req, res, next) => {
 // ─── Send OTP for verification / login ───────────────────────────────
 
 const TEST_MOBILE = '9999999999';
+const TEST_PARTNER_MOBILE = '7777777777';
 const TEST_OTP = '333333';
 
 exports.sendOTP = async (req, res, next) => {
@@ -212,7 +213,7 @@ exports.sendWorkerOTP = async (req, res, next) => {
       });
     }
 
-    const isTestUser = String(mobile) === TEST_MOBILE;
+    const isTestUser = String(mobile) === TEST_PARTNER_MOBILE;
 
     // Fixed OTP for test account
     const otp = isTestUser ? TEST_OTP : generateOTP();

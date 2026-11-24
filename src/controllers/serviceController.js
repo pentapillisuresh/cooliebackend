@@ -530,14 +530,57 @@ exports.getServicesByCategorySlug =
     }
   };
 
+/**
+ * Update a single service's position
+ * PATCH /api/services/:id/position
+ */
+exports.updatePosition = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { position } = req.body;
+
+    // Validate input
+    if (position === undefined || position === null) {
+      return res.status(400).json({
+        success: false,
+        error: 'position is required in the request body',
+      });
+    }
+
+    const parsedPosition = parseInt(position, 10);
+    if (Number.isNaN(parsedPosition)) {
+      return res.status(400).json({
+        success: false,
+        error: 'position must be a valid integer',
+      });
+    }
+
+    const service = await Service.findByPk(id);
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service not found',
+      });
+    }
+
+    await service.update({ position: parsedPosition });
+
+    return res.status(200).json({
+      success: true,
+      data: service,
+      message: 'Service position updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 // ============================================================
 // TOGGLE SERVICE STATUS
 // ============================================================
 
-/**
- * Toggle service active status
- */
 exports.toggleServiceStatus =
   async (
     req,

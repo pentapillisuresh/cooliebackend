@@ -1,4 +1,4 @@
-const { Booking, Service, User, Worker, Job, Payment, Category, Address } = require('../models');
+const { Booking, Service, User, Worker, Job, Payment, Category, Address, Review } = require('../models');
 const { BOOKING_STATUS, PAYMENT_STATUS, JOB_STATUS } = require('../utils/constants');
 const { generateRandomString, formatResponse, getPagination, getPagingData } = require('../utils/helpers');
 const { Op } = require('sequelize');
@@ -317,8 +317,8 @@ exports.assignWorker = async (req, res, next) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    if (booking.status !== BOOKING_STATUS.PENDING) {
-      return res.status(400).json({ error: 'Booking is not in pending state' });
+    if (booking.status !== BOOKING_STATUS.PAYMENT_PAID) {
+      return res.status(400).json({ error: 'Booking is not in PAYMENT_PAID state' });
     }
 
     // Check worker exists and is verified
@@ -334,7 +334,7 @@ exports.assignWorker = async (req, res, next) => {
     }
 
     // Create job
-    const job = await ({
+    const job = await Job.create({
       bookingId: booking.id,
       workerId: worker.id,
       status: JOB_STATUS.ASSIGNED,
@@ -354,7 +354,7 @@ exports.assignWorker = async (req, res, next) => {
     );
 
     // Update booking status to accepted
-    await booking.update({ status: BOOKING_STATUS.ACCEPTED });
+    await booking.update({ status: BOOKING_STATUS.ASSIGNED });
 
     // (Optional) Send push notification to worker
 
@@ -556,9 +556,9 @@ exports.reassignWorker = async (req, res, next) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    if (booking.status === BOOKING_STATUS.COMPLETED ||
-      booking.status === BOOKING_STATUS.PAYMENT_PENDING ||
-      booking.status === BOOKING_STATUS.CANCELLED) {
+    if (booking.status === BOOKING_STATUS.COMPLETED || booking.status === BOOKING_STATUS.ACCEPTED||
+      booking.status === BOOKING_STATUS.PAYMENT_PENDING || booking.status === BOOKING_STATUS.ARRIVED ||
+      booking.status === BOOKING_STATUS.CANCELLED ||booking.status === BOOKING_STATUS.ONTHEWAY) {
       return res.status(400).json({ error: 'Cannot reassign a completed or cancelled booking' });
     }
 
@@ -600,7 +600,7 @@ exports.reassignWorker = async (req, res, next) => {
 
     }
 
-    await booking.update({ status: BOOKING_STATUS.ACCEPTED });
+    await booking.update({ status: BOOKING_STATUS.ASSIGNED });
 
     res.status(200).json({ success: true, data: { booking, job } });
   } catch (error) {

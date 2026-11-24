@@ -1,19 +1,6 @@
-const {
-  Service,
-  Category,
-  Booking,
-  Worker,
-  sequelize,
-} = require('../models');
-
-const {
-  getPagination,
-  getPagingData,
-} = require('../utils/helpers');
-
-const {
-  Op,
-} = require('sequelize');
+const { Service, Category, Booking, Worker, sequelize } = require('../models');
+const { getPagination, getPagingData } = require('../utils/helpers');
+const { Op } = require('sequelize');
 
 
 // ============================================================
@@ -262,7 +249,8 @@ exports.createService = async (
       basePrice,
       duration,
       image,
-      metadata,
+      metadata, isActive,
+      pricingUnit, position,
     } = req.body;
 
     // --------------------------------------------------------
@@ -281,6 +269,10 @@ exports.createService = async (
       });
     }
 
+    // Check slug uniqueness
+    const existing = await Service.findOne({ where: { slug } });
+    if (existing) return res.status(400).json({ error: 'Service slug already exists' });
+
     // --------------------------------------------------------
     // Create service
     // --------------------------------------------------------
@@ -294,12 +286,9 @@ exports.createService = async (
         basePrice,
         duration,
         image,
-
-        // IMPORTANT:
-        // metadata is stored as JSON
-        metadata:
-          metadata || {},
-
+        metadata: metadata || {},
+        pricingUnit,
+        position: parseInt(position) || 0,
         isActive: true,
       });
 
@@ -346,9 +335,10 @@ exports.updateService = async (
   try {
     const { id } = req.params;
 
-    const updates = {
-      ...req.body,
-    };
+    const { 
+      categoryId, name, slug, description, basePrice, 
+      duration, image, metadata, pricingUnit, position, isActive 
+    } = req.body;
 
     const service =
       await Service.findByPk(id);
@@ -360,6 +350,11 @@ exports.updateService = async (
       });
     }
 
+    if (slug && slug !== service.slug) {
+      const existing = await Service.findOne({ where: { slug } });
+      if (existing) return res.status(400).json({ error: 'Service slug already exists' });
+    }
+
     // --------------------------------------------------------
     // Validate category if changed
     // --------------------------------------------------------
@@ -368,9 +363,7 @@ exports.updateService = async (
       updates.categoryId !== undefined
     ) {
       const category =
-        await Category.findByPk(
-          updates.categoryId
-        );
+        await Category.findByPk(categoryId);
 
       if (!category) {
         return res.status(400).json({
@@ -385,20 +378,30 @@ exports.updateService = async (
     // --------------------------------------------------------
 
     if (
-      updates.metadata !== undefined &&
-      updates.metadata === null
+      metadata !== undefined &&
+      metadata === null
     ) {
-      updates.metadata = {};
+      metadata = {};
     }
 
     // --------------------------------------------------------
     // Update
     // --------------------------------------------------------
 
-    await service.update(
-      updates
-    );
-
+    await service.update({
+      categoryId: categoryId || service.categoryId,
+      name: name || service.name,
+      slug: slug || service.slug,
+      description: description !== undefined ? description : service.description,
+      basePrice: basePrice !== undefined ? parseFloat(basePrice) : service.basePrice,
+      duration: duration !== undefined ? parseInt(duration) : service.duration,
+      image: image !== undefined ? image : service.image,
+      metadata: metadata !== undefined ? metadata : service.metadata,
+      pricingUnit: pricingUnit !== undefined ? pricingUnit : service.pricingUnit,
+      position: position !== undefined ? parseInt(position) : service.position,
+      isActive: isActive !== undefined ? isActive : service.isActive,
+    });
+    
     // --------------------------------------------------------
     // Get updated service
     // --------------------------------------------------------
@@ -542,13 +545,9 @@ exports.toggleServiceStatus =
     next
   ) => {
     try {
-      const { id } =
-        req.params;
+      const { id } = req.params;
 
-      const service =
-        await Service.findByPk(
-          id
-        );
+      const service = await Service.findByPk(id);
 
       if (!service) {
         return res.status(404).json({
@@ -557,15 +556,9 @@ exports.toggleServiceStatus =
         });
       }
 
-      await service.update({
-        isActive:
-          !service.isActive,
-      });
+      await service.update({ isActive:!service.isActive});
 
-      const updatedService =
-        await Service.findByPk(
-          id,
-          {
+      const updatedService = await Service.findByPk(id,{
             include: [
               {
                 model: Category,

@@ -17,6 +17,6 @@ router.post('/', auth, isAdmin, serviceController.createService);
 router.put('/:id', auth, isAdmin, idParamValidator, validate, serviceController.updateService);
 router.delete('/:id', auth, isAdmin, idParamValidator, validate, serviceController.deleteService);
 router.patch('/:id/toggle', auth, isAdmin, idParamValidator, validate, serviceController.toggleServiceStatus);
-router.patch('/:id/position',auth,isAdmin,idParamValidator,validate,serviceController.updatePosition);
+router.patch('/:id/position',auth,isAdmin,idParamValidator,serviceController.updatePosition);
 
 module.exports = router;

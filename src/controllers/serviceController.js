@@ -150,7 +150,7 @@ exports.getAllServices = async (req, res, next) => {
         ],
 
         order: [
-          ['name', 'ASC'],
+          ['position', 'ASC'],
         ],
 
         offset,

@@ -98,6 +98,55 @@ exports.deleteCategory = async (req, res, next) => {
   }
 };
 
+
+// src/controllers/categoryController.js
+
+/**
+ * Update a single category's sort order
+ * PATCH /api/categories/:id/sort-order
+ */
+exports.updateSortOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { sortOrder } = req.body;
+
+    // Validate input
+    if (sortOrder === undefined || sortOrder === null) {
+      return res.status(400).json({
+        success: false,
+        error: 'sortOrder is required in the request body',
+      });
+    }
+
+    const parsedSortOrder = parseInt(sortOrder, 10);
+    if (Number.isNaN(parsedSortOrder)) {
+      return res.status(400).json({
+        success: false,
+        error: 'sortOrder must be a valid integer',
+      });
+    }
+
+    const category = await Category.findByPk(id);
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        error: 'Category not found',
+      });
+    }
+
+    await category.update({ sortOrder: parsedSortOrder });
+
+    return res.status(200).json({
+      success: true,
+      data: category,
+      message: 'Sort order updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getCategoryWithSchema = async (req, res, next) => {
   console.log("==== getCategoryWithSchema ====");
   console.log(req.params);

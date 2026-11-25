@@ -360,7 +360,7 @@ exports.updateService = async (
     // --------------------------------------------------------
 
     if (
-      updates.categoryId !== undefined
+      service.categoryId !== undefined
     ) {
       const category =
         await Category.findByPk(categoryId);

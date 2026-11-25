@@ -10,7 +10,7 @@ router.use(auth);
 router.get('/', notificationController.getMyNotifications);
 router.put('/:id/read', idParamValidator, notificationController.markAsRead);
 router.put('/read-all', notificationController.markAllAsRead);
-router.delete('/:id', idParamValidator, validate, notificationController.deleteNotification);
+router.delete('/:id', idParamValidator,  notificationController.deleteNotification);
 
 // ─── Admin only ──────────────────────────────────────────────────────
 router.post('/', isAdmin, notificationController.sendNotification);

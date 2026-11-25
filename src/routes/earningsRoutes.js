@@ -11,6 +11,6 @@ router.get('/summary', earningsController.getEarningsSummary);
 router.get('/history', earningsController.getEarningsHistory);
 
 // ─── Admin only ──────────────────────────────────────────────────────
-router.get('/admin/:workerId/summary', isAdmin, idParamValidator, validate, earningsController.getWorkerEarningsSummary);
+router.get('/admin/:workerId/summary', isAdmin, idParamValidator,  earningsController.getWorkerEarningsSummary);
 
 module.exports = router;

@@ -9,10 +9,10 @@ router.get('/worker/:workerId', reviewController.getWorkerReviews);
 
 // ─── Authenticated ──────────────────────────────────────────────────
 router.use(auth);
-router.post('/booking/:bookingId', idParamValidator, validate, reviewController.createReview);
+router.post('/booking/:bookingId', idParamValidator,  reviewController.createReview);
 router.get('/my', reviewController.getMyReviews);
-router.put('/:id', idParamValidator, validate, reviewController.updateReview);
-router.delete('/:id', idParamValidator, validate, reviewController.deleteReview);
+router.put('/:id', idParamValidator,  reviewController.updateReview);
+router.delete('/:id', idParamValidator,  reviewController.deleteReview);
 
 // ─── Admin only ──────────────────────────────────────────────────────
 router.get('/', isAdmin, reviewController.getAllReviews);

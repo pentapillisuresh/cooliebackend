@@ -6,7 +6,7 @@ const {
   createBookingValidator,
   updateBookingValidator,
   idParamValidator,
-  validate,
+  
 } = require('../utils/validators');
 
 router.use(auth);

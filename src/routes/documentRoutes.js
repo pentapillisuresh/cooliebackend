@@ -11,11 +11,11 @@ router.use(auth);
 router.post('/', uploadSingle('file'), documentController.uploadDocument);
 router.put('/:id', uploadSingle('file'), documentController.updateDocument);
 router.get('/my', documentController.getMyDocuments);
-router.get('/:id', idParamValidator, validate, documentController.getDocumentById);
-router.delete('/:id', idParamValidator, validate, documentController.deleteDocument);
+router.get('/:id', idParamValidator,  documentController.getDocumentById);
+router.delete('/:id', idParamValidator,  documentController.deleteDocument);
 
 // ─── Admin only ──────────────────────────────────────────────────────
 router.get('/', isAdmin, documentController.getAllDocuments);
-router.patch('/:id/verify', isAdmin, idParamValidator, validate, documentController.verifyDocument);
+router.patch('/:id/verify', isAdmin, idParamValidator,  documentController.verifyDocument);
 
 module.exports = router;

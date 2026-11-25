@@ -11,9 +11,9 @@ router.get('/', addressController.getMyAddresses);
 router.post('/', addressController.createAddress);
 
 // Single address operations
-router.get('/:id', idParamValidator, validate, addressController.getAddressById);
-router.put('/:id', idParamValidator, validate, addressController.updateAddress);
-router.delete('/:id', idParamValidator, validate, addressController.deleteAddress);
-router.patch('/:id/default', idParamValidator, validate, addressController.setDefaultAddress);
+router.get('/:id', idParamValidator,  addressController.getAddressById);
+router.put('/:id', idParamValidator,  addressController.updateAddress);
+router.delete('/:id', idParamValidator,  addressController.deleteAddress);
+router.patch('/:id/default', idParamValidator,  addressController.setDefaultAddress);
 
 module.exports = router;

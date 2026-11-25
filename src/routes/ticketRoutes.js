@@ -9,11 +9,11 @@ router.use(auth);
 // ─── User/Worker ─────────────────────────────────────────────────────
 router.post('/', ticketController.createTicket);
 router.get('/my', ticketController.getMyTickets);
-router.get('/:id', idParamValidator, validate, ticketController.getTicketById);
-router.post('/:id/reply', idParamValidator, validate, ticketController.replyToTicket);
+router.get('/:id', idParamValidator,  ticketController.getTicketById);
+router.post('/:id/reply', idParamValidator,  ticketController.replyToTicket);
 
 // ─── Admin only ──────────────────────────────────────────────────────
 router.get('/', isAdmin, ticketController.getAllTickets);
-router.put('/:id/status', isAdmin, idParamValidator, validate, ticketController.updateTicketStatus);
+router.put('/:id/status', isAdmin, idParamValidator,  ticketController.updateTicketStatus);
 
 module.exports = router;

@@ -7,7 +7,7 @@ const {
   confirmOTPValidator,
   completeJobValidator,
   idParamValidator,
-  validate,
+  
 } = require('../utils/validators');
 
 router.use(auth);

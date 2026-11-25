@@ -19,6 +19,6 @@ router.get('/methods', paymentController.getPaymentMethods);
 
 // Admin routes
 router.get('/report', isAdmin, paymentController.getPaymentReport);
-router.post('/booking/:bookingId/refund', isAdmin, idParamValidator, validate, paymentController.initiateRefund);
+router.post('/booking/:bookingId/refund', isAdmin, idParamValidator,  paymentController.initiateRefund);
 
 module.exports = router;

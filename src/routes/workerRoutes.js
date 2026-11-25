@@ -11,7 +11,7 @@ const {
 
 const {
   idParamValidator,
-  validate,
+  
 } = require('../utils/validators');
 
 

@@ -12,10 +12,10 @@ router.get('/slug/:slug', categoryController.getCategoryWithSchema);
 
 // ─── Admin only ──────────────────────────────────────────────────────
 router.post('/', auth, isAdmin, categoryController.createCategory);
-router.put('/:id', auth, isAdmin, idParamValidator, validate, categoryController.updateCategory);
+router.put('/:id', auth, isAdmin, idParamValidator, categoryController.updateCategory);
 // ✅ NEW: Update just the sort order
 router.patch('/:id/sort-order', auth, isAdmin, idParamValidator, categoryController.updateSortOrder);
-router.delete('/:id', auth, isAdmin, idParamValidator, validate, categoryController.deleteCategory);
+router.delete('/:id', auth, isAdmin, idParamValidator, categoryController.deleteCategory);
 router.patch('/bulk-sort', auth, isAdmin, categoryController.bulkUpdateSortOrder);
 
 module.exports = router;

@@ -6,11 +6,11 @@ const { idParamValidator, validate } = require('../utils/validators');
 
 // ─── Public ──────────────────────────────────────────────────────────
 router.get('/', faqController.getFAQs);
-router.get('/:id', idParamValidator, validate, faqController.getFAQById);
+router.get('/:id', idParamValidator,  faqController.getFAQById);
 
 // ─── Admin only ──────────────────────────────────────────────────────
 router.post('/', auth, isAdmin, faqController.createFAQ);
-router.put('/:id', auth, isAdmin, idParamValidator, validate, faqController.updateFAQ);
-router.delete('/:id', auth, isAdmin, idParamValidator, validate, faqController.deleteFAQ);
+router.put('/:id', auth, isAdmin, idParamValidator,  faqController.updateFAQ);
+router.delete('/:id', auth, isAdmin, idParamValidator,  faqController.deleteFAQ);
 
 module.exports = router;

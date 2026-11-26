@@ -26,8 +26,20 @@ const User = sequelize.define('User', {
     allowNull: true,
   },
   role: {
-    type: DataTypes.ENUM('user', 'worker', 'admin'),
+    type: DataTypes.ENUM('user', 'worker', 'admin','employee'),
     defaultValue: 'user',
+  },
+  permissions: {
+    type: DataTypes.JSON,
+    defaultValue: {
+      ticket: true,
+      promotion: true,
+      payment: true,
+      booking: true,
+      category: true,
+      service: true,
+      verification: true,
+    }
   },
   isVerified: {
     type: DataTypes.BOOLEAN,

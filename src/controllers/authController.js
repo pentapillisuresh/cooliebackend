@@ -20,9 +20,9 @@ exports.register = async (req, res, next) => {
     const { mobile, name, email, password, role, profession, experience, description, profileImage } = req.body;
 
     // Check if user already exists
-    const existing = await User.findOne({ where: { mobile } });
+    const existing = await User.findOne({ where: { mobile, role: 'worker' } });
     if (existing) {
-      return res.status(400).json({ error: 'User with this mobile number already exists' });
+      return res.status(400).json({ error: 'User with this mobile number already exists as partner' });
     }
     const hashedPassword = '';
     if (password) {
@@ -96,14 +96,11 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = generateToken(user);
-
-    // Get worker profile if exists
-    let worker = null;
-    if (user.role === USER_ROLES.WORKER) {
-      worker = await Worker.findOne({ where: { userId: user.id } });
+    if (user.role !== 'admin' || user.role !== 'employee') {
+      return res.status(401).json({ error: 'sorry your are not admin/employee' });
     }
-
+    const token = generateToken(user);
+   
     res.status(200).json({
       success: true,
       token,
@@ -114,7 +111,6 @@ exports.login = async (req, res, next) => {
         role: user.role,
         isVerified: user.isVerified,
       },
-      worker: worker || undefined,
     });
   } catch (error) {
     next(error);

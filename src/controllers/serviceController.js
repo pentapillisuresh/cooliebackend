@@ -335,9 +335,9 @@ exports.updateService = async (
   try {
     const { id } = req.params;
 
-    const { 
-      categoryId, name, slug, description, basePrice, 
-      duration, image, metadata, pricingUnit, position, isActive 
+    const {
+      categoryId, name, slug, description, basePrice,
+      duration, image, metadata, pricingUnit, position, isActive
     } = req.body;
 
     const service =
@@ -401,7 +401,7 @@ exports.updateService = async (
       position: position !== undefined ? parseInt(position) : service.position,
       isActive: isActive !== undefined ? isActive : service.isActive,
     });
-    
+
     // --------------------------------------------------------
     // Get updated service
     // --------------------------------------------------------
@@ -599,16 +599,16 @@ exports.toggleServiceStatus =
         });
       }
 
-      await service.update({ isActive:!service.isActive});
+      await service.update({ isActive: !service.isActive });
 
-      const updatedService = await Service.findByPk(id,{
-            include: [
-              {
-                model: Category,
-              },
-            ],
-          }
-        );
+      const updatedService = await Service.findByPk(id, {
+        include: [
+          {
+            model: Category,
+          },
+        ],
+      }
+      );
 
       return res.status(200).json({
         success: true,

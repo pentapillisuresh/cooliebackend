@@ -95,8 +95,7 @@ exports.login = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-
-    if (user.role !== 'admin' || user.role !== 'employee') {
+    if (user.role !== 'admin' && user.role !== 'employee') {
       return res.status(401).json({ error: 'sorry your are not admin/employee' });
     }
     const token = generateToken(user);

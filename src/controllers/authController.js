@@ -197,7 +197,6 @@ exports.sendOTP = async (req, res, next) => {
   }
 };
 
-
 exports.sendWorkerOTP = async (req, res, next) => {
   try {
     const { mobile } = req.body;
@@ -277,9 +276,9 @@ exports.verifyOTP = async (req, res, next) => {
       return res.status(400).json({ error: 'Mobile and OTP are required' });
     }
 
-    const user = await User.findOne({ where: { mobile } });
+    const user = await User.findOne({ where: { mobile,role } });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: `${user} not found for this ${mobile}` });
     }
 
     // Check OTP expiry
@@ -344,14 +343,7 @@ exports.resendOTP = async (req, res, next) => {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
     await user.update({ otp: newOtp, otpExpiry });
-
-    if (process.env.NODE_ENV === 'development') {
-      return res.status(200).json({
-        success: true,
-        message: 'OTP resent',
-        otp: newOtp,
-      });
-    }
+    const smsResponse = await sendSMS(user.mobile, newOtp);
 
     res.status(200).json({ success: true, message: 'OTP resent successfully' });
   } catch (error) {
